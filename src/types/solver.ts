@@ -22,6 +22,10 @@ export type AlgorithmKey =
   | "tieptuyen"
   | "daycung"
   | "lapdon"
+  | "chebyshev-nodes"
+  | "poly-multiply-linear"
+  | "poly-divide-horner"
+  | "poly-derivative-horner"
   | "gauss"
   | "gaussjordan"
   | "gauss-seidel"
@@ -73,6 +77,15 @@ export const NONLINEAR_1D_METHODS = [
   "lapdon",
 ] as const;
 
+export const PPS_POLYNOMIAL_METHODS = [
+  "chebyshev-nodes",
+  "poly-multiply-linear",
+  "poly-divide-horner",
+  "poly-derivative-horner",
+] as const;
+
+export const INTERPOLATION_METHODS = PPS_POLYNOMIAL_METHODS;
+
 export const LINEAR_SYSTEM_METHODS = [
   "gauss",
   "gaussjordan",
@@ -82,6 +95,7 @@ export const LINEAR_SYSTEM_METHODS = [
   "lu-solve",
   "cholesky-decompose",
   "cholesky-solve",
+  "vien-quanh",
 ] as const;
 
 export const NONLINEAR_SYSTEM_METHODS = [

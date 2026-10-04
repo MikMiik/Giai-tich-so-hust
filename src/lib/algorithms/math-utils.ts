@@ -34,7 +34,7 @@ export function parseFraction(v: string): number {
 }
 
 export const FormattingConfig = {
-  defaultGeneralDecimals: 7,
+  defaultGeneralDecimals: 4,
   defaultMatrixDecimals: 4,
 };
 
@@ -82,3 +82,54 @@ export function fmtMat(
   );
   return `\\begin{bmatrix} ${rows.join(" \\\\ ")} \\end{bmatrix}`;
 }
+
+export function parseCoeffs(input: string): number[] {
+  if (!input) return [];
+  const parts = input.trim().split(/[\s,;]+/).filter(Boolean);
+  const res: number[] = [];
+  for (const part of parts) {
+    const val = parseFraction(part);
+    if (isNaN(val)) return [];
+    res.push(val);
+  }
+  return res;
+}
+
+export function fmtPoly(
+  coeffs: number[],
+  varName: string = "x",
+  decimals: number = FormattingConfig.defaultGeneralDecimals,
+): string {
+  if (!coeffs || coeffs.length === 0) return "0";
+  const n = coeffs.length - 1;
+  const terms: string[] = [];
+
+  for (let i = 0; i <= n; i++) {
+    const c = coeffs[i];
+    const power = n - i;
+    if (Math.abs(c) < 1e-12) continue;
+
+    const sign = c > 0 ? (terms.length > 0 ? "+ " : "") : "- ";
+    const absC = Math.abs(c);
+    const cStr = Math.abs(absC - Math.round(absC)) < 1e-9 ? String(Math.round(absC)) : fmtNum(absC, decimals);
+
+    if (power === 0) {
+      terms.push(`${sign}${cStr}`);
+    } else if (power === 1) {
+      if (Math.abs(absC - 1) < 1e-9) {
+        terms.push(`${sign}${varName}`);
+      } else {
+        terms.push(`${sign}${cStr}${varName}`);
+      }
+    } else {
+      if (Math.abs(absC - 1) < 1e-9) {
+        terms.push(`${sign}${varName}^{${power}}`);
+      } else {
+        terms.push(`${sign}${cStr}${varName}^{${power}}`);
+      }
+    }
+  }
+
+  return terms.length > 0 ? terms.join(" ") : "0";
+}
+

@@ -3,6 +3,10 @@ import { runBisection } from "@/lib/algorithms/bisection";
 import { runTiepTuyen } from "@/lib/algorithms/tieptuyen";
 import { runDayCung } from "@/lib/algorithms/daycung";
 import { runLapDon } from "@/lib/algorithms/lapdon";
+import { runChebyshevNodes } from "@/lib/algorithms/chebyshev-nodes";
+import { runPolyMultiplyLinear } from "@/lib/algorithms/poly-multiply-linear";
+import { runPolyDivideHorner } from "@/lib/algorithms/poly-divide-horner";
+import { runPolyDerivativeHorner } from "@/lib/algorithms/poly-derivative-horner";
 import { runGauss } from "@/lib/algorithms/gauss";
 import { runGaussJordan } from "@/lib/algorithms/gaussjordan";
 import { runNewtonSystem } from "@/lib/algorithms/newton-system";
@@ -84,6 +88,48 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
       epsilon: "5e-9",
     },
     run: runLapDon,
+  },
+  "chebyshev-nodes": {
+    title: "Mốc Nội Suy Tối Ưu Chebyshev",
+    subtitle: "Xác định n mốc tối ưu tăng dần trên [a, b] — Chebyshev Nodes",
+    icon: "∿",
+    defaultValues: {
+      n: "5",
+      a: "-1",
+      b: "1",
+    },
+    run: runChebyshevNodes,
+  },
+  "poly-multiply-linear": {
+    title: "Nhân Đa Thức với (x - c)",
+    subtitle: "Tính tích A(x) = (x - c)P(x) — Polynomial Multiply",
+    icon: "×",
+    defaultValues: {
+      coeffs: "2 3 -1",
+      c: "2",
+    },
+    run: runPolyMultiplyLinear,
+  },
+  "poly-divide-horner": {
+    title: "Chia Đa Thức (Sơ Đồ Horner)",
+    subtitle: "Chia P(x) cho (x - c) tìm thương và số dư — Horner Division",
+    icon: "÷",
+    defaultValues: {
+      coeffs: "1 -2 1 -3",
+      c: "2",
+    },
+    run: runPolyDivideHorner,
+  },
+  "poly-derivative-horner": {
+    title: "Đạo Hàm Cấp k (Sơ Đồ Horner)",
+    subtitle: "Tính P^(k)(c) = k! · b_(k-1) tại x = c — Horner Derivative",
+    icon: "dⁿ",
+    defaultValues: {
+      coeffs: "3 -2 5 -7",
+      k: "2",
+      c: "2",
+    },
+    run: runPolyDerivativeHorner,
   },
   gauss: {
     title: "Phương Pháp Gauss",
@@ -238,32 +284,32 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   svd: {
     title: "Phân Rã SVD",
     subtitle: "Xác định giá trị và vector kỳ dị — SVD Decomposition",
-    icon: "\u03a3",
+    icon: "Σ",
     defaultValues: {
       matA: "1 1\n0 0\n0 0",
       truncationR: "",
-      targetErrorPct: ""
+      targetErrorPct: "",
     },
     run: runSvd,
   },
   "svd-power": {
     title: "Phân Rã SVD (Lũy thừa & Xuống thang)",
     subtitle: "Thực hiện SVD từng bước qua lặp số trị",
-    icon: "\u03a3*",
+    icon: "Σ*",
     defaultValues: {
       matA: "4 -1 1\n-1 3 -2\n1 -2 3",
       x0Str: "1 1 1",
       epsilon: "1e-5",
       maxIter: "100",
       truncationR: "",
-      targetErrorPct: ""
+      targetErrorPct: "",
     },
     run: runSvdPower,
   },
   pseudoinverse: {
     title: "Ma Trận Nghịch Đảo Suy Rộng",
     subtitle: "Tìm ma trận Moore-Penrose $A^\\dagger$ — Pseudoinverse",
-    icon: "\u2020",
+    icon: "†",
     defaultValues: {
       matA: "1 1\n0 0\n0 0",
     },
@@ -272,7 +318,7 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   "condition-number": {
     title: "Số Điều Kiện",
     subtitle: "Tính mức ổn định số của ma trận — Condition Number",
-    icon: "\u03ba",
+    icon: "κ",
     defaultValues: {
       matA: "4 2\n1 3",
     },
@@ -281,7 +327,7 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   "gram-schmidt": {
     title: "Trực chuẩn Gram-Schmidt",
     subtitle: "Trực giao & Trực chuẩn hóa tập vector — Gram-Schmidt",
-    icon: "\u22a5",
+    icon: "⊥",
     defaultValues: {
       vectors: "1 1 0\n1 0 1\n0 1 1",
     },
@@ -290,7 +336,7 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   "vien-quanh": {
     title: "Nghịch Đảo Viền Quanh",
     subtitle: "Tìm ma trận nghịch đảo $A^{-1}$ — Bordering Method",
-    icon: "[ ]\u207B\u00B9",
+    icon: "[ ]⁻¹",
     defaultValues: {
       matA: "0 -5 -8 -5 -1 -4\n10 0 -7 9 -3 5\n-3 4 -5 -3 7 5\n2 8 7 -6 2 -3\n-6 10 -5 -5 1 1\n5 1 7 2 9 -9",
     },
@@ -298,9 +344,15 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   },
 };
 
-export const SIDEBAR_SECTIONS = [
+export const GTS_SIDEBAR_SECTIONS = [
   {
-    methods: ["isolate-roots", "bisection", "tieptuyen", "daycung", "lapdon"] as AlgorithmKey[],
+    methods: [
+      "isolate-roots",
+      "bisection",
+      "tieptuyen",
+      "daycung",
+      "lapdon",
+    ] as AlgorithmKey[],
   },
   {
     methods: [
@@ -331,3 +383,16 @@ export const SIDEBAR_SECTIONS = [
     ] as AlgorithmKey[],
   },
 ] as const;
+
+export const PPS_SIDEBAR_SECTIONS = [
+  {
+    methods: [
+      "chebyshev-nodes",
+      "poly-multiply-linear",
+      "poly-divide-horner",
+      "poly-derivative-horner",
+    ] as AlgorithmKey[],
+  },
+] as const;
+
+export const SIDEBAR_SECTIONS = GTS_SIDEBAR_SECTIONS;

@@ -3,14 +3,28 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ALGORITHM_CONFIG, SIDEBAR_SECTIONS } from "@/lib/algorithm-config";
+import {
+  ALGORITHM_CONFIG,
+  GTS_SIDEBAR_SECTIONS,
+  PPS_SIDEBAR_SECTIONS,
+} from "@/lib/algorithm-config";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
+  const isPps = pathname.startsWith("/pps");
+  const modulePrefix = isPps ? "/pps" : "/gts";
+  const moduleTitle = isPps ? "PPS" : "GTS";
+  const moduleSub = isPps ? "Phương Pháp Số" : "Giải Tích Số";
+  const moduleIcon = isPps ? "∫" : "∑";
+  const sections = isPps ? PPS_SIDEBAR_SECTIONS : GTS_SIDEBAR_SECTIONS;
+
   const isActive = (method: string) => {
-    return pathname === `/gts/${method}` || pathname.startsWith(`/gts/${method}/`);
+    return (
+      pathname === `${modulePrefix}/${method}` ||
+      pathname.startsWith(`${modulePrefix}/${method}/`)
+    );
   };
 
   return (
@@ -20,15 +34,19 @@ export default function Sidebar() {
     >
       {/* Header */}
       <div className="sidebar-header">
-        <div className="sidebar-logo">
-          <span className="sidebar-logo-icon">∑</span>
+        <Link
+          href="/"
+          className="sidebar-logo"
+          title="Về trang chủ chọn phân hệ môn học"
+        >
+          <span className="sidebar-logo-icon">{moduleIcon}</span>
           {!collapsed && (
             <div className="sidebar-logo-text">
-              <span className="sidebar-logo-title">GTS</span>
-              <span className="sidebar-logo-sub">Giải Tích Số</span>
+              <span className="sidebar-logo-title">{moduleTitle}</span>
+              <span className="sidebar-logo-sub">{moduleSub}</span>
             </div>
           )}
-        </div>
+        </Link>
         <button
           className="sidebar-toggle"
           onClick={() => setCollapsed((c) => !c)}
@@ -41,7 +59,7 @@ export default function Sidebar() {
 
       {/* Navigation sections */}
       <nav className="sidebar-nav">
-        {SIDEBAR_SECTIONS.map((section, idx) => (
+        {sections.map((section, idx) => (
           <div key={section.methods[0] ?? idx} className="sidebar-section">
             <ul className="algo-list" role="list">
               {section.methods.map((method) => {
@@ -50,15 +68,19 @@ export default function Sidebar() {
                 return (
                   <li key={method}>
                     <Link
-                      href={`/gts/${method}`}
+                      href={`${modulePrefix}/${method}`}
                       className={`algo-btn ${active ? "algo-btn--active" : ""}`}
                       title={collapsed ? cfg.title : undefined}
                     >
                       <span className="algo-icon">{cfg.icon}</span>
                       {!collapsed && (
                         <div className="algo-info">
-                          <span className="algo-name">{cfg.title.replace("Phương Pháp ", "")}</span>
-                          <span className="algo-desc">{cfg.subtitle.split("—")[0].trim()}</span>
+                          <span className="algo-name">
+                            {cfg.title.replace("Phương Pháp ", "")}
+                          </span>
+                          <span className="algo-desc">
+                            {cfg.subtitle.split("—")[0].trim()}
+                          </span>
                         </div>
                       )}
                     </Link>

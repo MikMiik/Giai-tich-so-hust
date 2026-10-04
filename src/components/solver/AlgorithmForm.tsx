@@ -83,6 +83,14 @@ function FormFields({
       return <DayCungFields onKeyDown={onKeyDown} />;
     case "lapdon":
       return <LapDonFields onKeyDown={onKeyDown} />;
+    case "chebyshev-nodes":
+      return <ChebyshevNodesFields onKeyDown={onKeyDown} />;
+    case "poly-multiply-linear":
+      return <PolyMultiplyLinearFields onKeyDown={onKeyDown} />;
+    case "poly-divide-horner":
+      return <PolyDivideHornerFields onKeyDown={onKeyDown} />;
+    case "poly-derivative-horner":
+      return <PolyDerivativeHornerFields onKeyDown={onKeyDown} />;
     case "gauss":
       return <MatrixFields />;
     case "gaussjordan":
@@ -144,6 +152,207 @@ function VienQuanhFields() {
           rows={6}
           spellCheck={false}
         />
+      </div>
+    </>
+  );
+}
+
+function ChebyshevNodesFields({ onKeyDown }: FieldProps) {
+  return (
+    <>
+      <div className="form-section-title">Số lượng mốc nội suy</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-n">
+          Số mốc <code>n</code> (nguyên dương ≥ 1)
+        </label>
+        <input
+          className="form-input"
+          id="in-n"
+          name="n"
+          type="number"
+          min="1"
+          step="1"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>5</code>, <code>4</code>, <code>10</code>
+        </div>
+      </div>
+      <div className="form-section-title">Đoạn nội suy [a, b]</div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-a">
+            Đầu mút trái <code>a</code>
+          </label>
+          <input
+            className="form-input"
+            id="in-a"
+            name="a"
+            type="text"
+            spellCheck={false}
+            onKeyDown={onKeyDown}
+          />
+          <div className="form-hint">
+            Ví dụ: <code>-1</code>, <code>0</code>, <code>-pi/2</code>
+          </div>
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-b">
+            Đầu mút phải <code>b</code> (b &gt; a)
+          </label>
+          <input
+            className="form-input"
+            id="in-b"
+            name="b"
+            type="text"
+            spellCheck={false}
+            onKeyDown={onKeyDown}
+          />
+          <div className="form-hint">
+            Ví dụ: <code>1</code>, <code>4</code>, <code>pi/2</code>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function PolyMultiplyLinearFields({ onKeyDown }: FieldProps) {
+  return (
+    <>
+      <div className="form-section-title">Đa thức P(x)</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-coeffs">
+          Hệ số của <code>P(x)</code> (từ bậc cao nhất đến bậc 0)
+        </label>
+        <input
+          className="form-input"
+          id="in-coeffs"
+          name="coeffs"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>2 3 -1</code> ứng với 2x² + 3x - 1
+        </div>
+      </div>
+      <div className="form-section-title">Đa thức bậc nhất (x - c)</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-c">
+          Hằng số <code>c</code>
+        </label>
+        <input
+          className="form-input"
+          id="in-c"
+          name="c"
+          type="text"
+          spellCheck={false}
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>2</code> (nhân với x - 2), <code>-1</code> (nhân với x + 1)
+        </div>
+      </div>
+    </>
+  );
+}
+
+function PolyDivideHornerFields({ onKeyDown }: FieldProps) {
+  return (
+    <>
+      <div className="form-section-title">Đa thức bị chia P_n(x)</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-coeffs">
+          Hệ số của <code>P_n(x)</code> (từ bậc cao nhất đến bậc 0)
+        </label>
+        <input
+          className="form-input"
+          id="in-coeffs"
+          name="coeffs"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>1 -2 1 -3</code> ứng với x³ - 2x² + x - 3
+        </div>
+      </div>
+      <div className="form-section-title">Đa thức chia (x - c)</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-c">
+          Hằng số <code>c</code> (nghiệm của nhị thức x - c)
+        </label>
+        <input
+          className="form-input"
+          id="in-c"
+          name="c"
+          type="text"
+          spellCheck={false}
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>2</code> (chia cho x - 2)
+        </div>
+      </div>
+    </>
+  );
+}
+
+function PolyDerivativeHornerFields({ onKeyDown }: FieldProps) {
+  return (
+    <>
+      <div className="form-section-title">Đa thức P_n(x)</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-coeffs">
+          Hệ số của <code>P_n(x)</code> (từ bậc cao nhất đến bậc 0)
+        </label>
+        <input
+          className="form-input"
+          id="in-coeffs"
+          name="coeffs"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>3 -2 5 -7</code> ứng với 3x³ - 2x² + 5x - 7
+        </div>
+      </div>
+      <div className="form-section-title">Tham số đạo hàm</div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-k">
+            Cấp đạo hàm <code>k</code> (nguyên ≥ 0)
+          </label>
+          <input
+            className="form-input"
+            id="in-k"
+            name="k"
+            type="number"
+            min="0"
+            step="1"
+            onKeyDown={onKeyDown}
+          />
+          <div className="form-hint">Ví dụ: <code>2</code> (tính P&apos;&apos;(c))</div>
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-c">
+            Điểm tính đạo hàm <code>c</code>
+          </label>
+          <input
+            className="form-input"
+            id="in-c"
+            name="c"
+            type="text"
+            spellCheck={false}
+            onKeyDown={onKeyDown}
+          />
+          <div className="form-hint">Ví dụ: <code>2</code>, <code>-1.5</code></div>
+        </div>
       </div>
     </>
   );
