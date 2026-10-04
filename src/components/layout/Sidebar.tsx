@@ -10,7 +10,7 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
 
   const isActive = (method: string) => {
-    return pathname.includes(`/${method}`);
+    return pathname === `/gts/${method}` || pathname.startsWith(`/gts/${method}/`);
   };
 
   return (
@@ -50,7 +50,7 @@ export default function Sidebar() {
                 return (
                   <li key={method}>
                     <Link
-                      href={`/${method}`}
+                      href={`/gts/${method}`}
                       className={`algo-btn ${active ? "algo-btn--active" : ""}`}
                       title={collapsed ? cfg.title : undefined}
                     >
