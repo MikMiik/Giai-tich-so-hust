@@ -91,6 +91,10 @@ function FormFields({
       return <PolyDivideHornerFields onKeyDown={onKeyDown} />;
     case "poly-derivative-horner":
       return <PolyDerivativeHornerFields onKeyDown={onKeyDown} />;
+    case "poly-product-linear":
+      return <PolyProductLinearFields onKeyDown={onKeyDown} />;
+    case "lagrange-interpolation":
+      return <LagrangeInterpolationFields onKeyDown={onKeyDown} />;
     case "gauss":
       return <MatrixFields />;
     case "gaussjordan":
@@ -352,6 +356,90 @@ function PolyDerivativeHornerFields({ onKeyDown }: FieldProps) {
             onKeyDown={onKeyDown}
           />
           <div className="form-hint">Ví dụ: <code>2</code>, <code>-1.5</code></div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function PolyProductLinearFields({ onKeyDown }: FieldProps) {
+  return (
+    <>
+      <div className="form-section-title">Dãy nghiệm / Hằng số c_k</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-cList">
+          Dãy các giá trị <code>c_k</code> (nhập cách nhau bằng dấu cách hoặc phẩy)
+        </label>
+        <input
+          className="form-input"
+          id="in-cList"
+          name="cList"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>1.2 1.5 1.7 2.1</code> tương ứng (x - 1.2)(x - 1.5)(x - 1.7)(x - 2.1)
+        </div>
+      </div>
+    </>
+  );
+}
+
+function LagrangeInterpolationFields({ onKeyDown }: FieldProps) {
+  return (
+    <>
+      <div className="form-section-title">Bảng dữ liệu mốc nội suy</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xList">
+          Dãy mốc <code>X = [x₀, x₁, ..., xₙ]</code>
+        </label>
+        <input
+          className="form-input"
+          id="in-xList"
+          name="xList"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>1.2 1.5 1.7 1.8 2.1 2.3</code> (các mốc đôi một khác nhau)
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-yList">
+          Dãy giá trị <code>Y = [y₀, y₁, ..., yₙ]</code>
+        </label>
+        <input
+          className="form-input"
+          id="in-yList"
+          name="yList"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>0.892 1.179 1.358 1.445 1.688 1.839</code>
+        </div>
+      </div>
+      <div className="form-section-title">Điểm ước lượng (Tùy chọn)</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xVal">
+          Tính giá trị <code>P_n(x*)</code> tại <code>x*</code>
+        </label>
+        <input
+          className="form-input"
+          id="in-xVal"
+          name="xVal"
+          type="text"
+          spellCheck={false}
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>1.6</code> (để trống nếu chỉ muốn tìm đa thức)
         </div>
       </div>
     </>

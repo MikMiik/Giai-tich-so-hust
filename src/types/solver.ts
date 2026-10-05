@@ -26,6 +26,8 @@ export type AlgorithmKey =
   | "poly-multiply-linear"
   | "poly-divide-horner"
   | "poly-derivative-horner"
+  | "poly-product-linear"
+  | "lagrange-interpolation"
   | "gauss"
   | "gaussjordan"
   | "gauss-seidel"
@@ -82,6 +84,8 @@ export const PPS_POLYNOMIAL_METHODS = [
   "poly-multiply-linear",
   "poly-divide-horner",
   "poly-derivative-horner",
+  "poly-product-linear",
+  "lagrange-interpolation",
 ] as const;
 
 export const INTERPOLATION_METHODS = PPS_POLYNOMIAL_METHODS;

@@ -7,6 +7,8 @@ import { runChebyshevNodes } from "@/lib/algorithms/chebyshev-nodes";
 import { runPolyMultiplyLinear } from "@/lib/algorithms/poly-multiply-linear";
 import { runPolyDivideHorner } from "@/lib/algorithms/poly-divide-horner";
 import { runPolyDerivativeHorner } from "@/lib/algorithms/poly-derivative-horner";
+import { runPolyProductLinear } from "@/lib/algorithms/poly-product-linear";
+import { runLagrangeInterpolation } from "@/lib/algorithms/lagrange-interpolation";
 import { runGauss } from "@/lib/algorithms/gauss";
 import { runGaussJordan } from "@/lib/algorithms/gaussjordan";
 import { runNewtonSystem } from "@/lib/algorithms/newton-system";
@@ -130,6 +132,26 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
       c: "2",
     },
     run: runPolyDerivativeHorner,
+  },
+  "poly-product-linear": {
+    title: "Tích Nhiều Đa Thức",
+    subtitle: "Khai triển P(x) = ∏(x - c_k) bằng bảng nhân dồn — Product of Polynomials",
+    icon: "∏",
+    defaultValues: {
+      cList: "1.2 1.5 1.7 2.1",
+    },
+    run: runPolyProductLinear,
+  },
+  "lagrange-interpolation": {
+    title: "Nội Suy Lagrange",
+    subtitle: "Tìm đa thức nội suy P_n(x) qua n+1 điểm mốc — Lagrange Interpolation",
+    icon: "𝓛",
+    defaultValues: {
+      xList: "1.2 1.5 1.7 1.8 2.1 2.3",
+      yList: "0.892 1.179 1.358 1.445 1.688 1.839",
+      xVal: "",
+    },
+    run: runLagrangeInterpolation,
   },
   gauss: {
     title: "Phương Pháp Gauss",
@@ -391,6 +413,8 @@ export const PPS_SIDEBAR_SECTIONS = [
       "poly-multiply-linear",
       "poly-divide-horner",
       "poly-derivative-horner",
+      "poly-product-linear",
+      "lagrange-interpolation",
     ] as AlgorithmKey[],
   },
 ] as const;
