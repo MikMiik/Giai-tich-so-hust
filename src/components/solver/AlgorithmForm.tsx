@@ -95,6 +95,10 @@ function FormFields({
       return <PolyProductLinearFields onKeyDown={onKeyDown} />;
     case "lagrange-interpolation":
       return <LagrangeInterpolationFields onKeyDown={onKeyDown} />;
+    case "newton-forward-interpolation":
+      return <NewtonForwardInterpolationFields onKeyDown={onKeyDown} />;
+    case "newton-backward-interpolation":
+      return <NewtonBackwardInterpolationFields onKeyDown={onKeyDown} />;
     case "gauss":
       return <MatrixFields />;
     case "gaussjordan":
@@ -440,6 +444,124 @@ function LagrangeInterpolationFields({ onKeyDown }: FieldProps) {
         />
         <div className="form-hint">
           Ví dụ: <code>1.6</code> (để trống nếu chỉ muốn tìm đa thức)
+        </div>
+      </div>
+    </>
+  );
+}
+
+function NewtonForwardInterpolationFields({ onKeyDown }: FieldProps) {
+  return (
+    <>
+      <div className="form-section-title">Bảng dữ liệu mốc nội suy</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xList">
+          Dãy mốc <code>X = [x₀, x₁, ..., xₙ]</code>
+        </label>
+        <input
+          className="form-input"
+          id="in-xList"
+          name="xList"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>1.2 1.5 1.7 1.9 2.1 2.4</code> (các mốc đôi một khác nhau)
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-yList">
+          Dãy giá trị <code>Y = [y₀, y₁, ..., yₙ]</code>
+        </label>
+        <input
+          className="form-input"
+          id="in-yList"
+          name="yList"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>0.7247 0.1415 -0.2577 -0.6466 -1.0097 -1.4748</code>
+        </div>
+      </div>
+      <div className="form-section-title">Điểm ước lượng (Tùy chọn)</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xVal">
+          Tính giá trị <code>P_n(x*)</code> tại <code>x*</code>
+        </label>
+        <input
+          className="form-input"
+          id="in-xVal"
+          name="xVal"
+          type="text"
+          spellCheck={false}
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>1.6</code> (để trống nếu chỉ muốn tìm đa thức)
+        </div>
+      </div>
+    </>
+  );
+}
+
+function NewtonBackwardInterpolationFields({ onKeyDown }: FieldProps) {
+  return (
+    <>
+      <div className="form-section-title">Bảng dữ liệu mốc nội suy</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xList">
+          Dãy mốc <code>X = [x₀, x₁, ..., xₙ]</code>
+        </label>
+        <input
+          className="form-input"
+          id="in-xList"
+          name="xList"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>2.2 2.3 2.6 2.7 3.0 3.2</code> (các mốc đôi một khác nhau)
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-yList">
+          Dãy giá trị <code>Y = [y₀, y₁, ..., yₙ]</code>
+        </label>
+        <input
+          className="form-input"
+          id="in-yList"
+          name="yList"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>1.617 1.4914 1.031 0.8548 0.2822 -0.1167</code>
+        </div>
+      </div>
+      <div className="form-section-title">Điểm ước lượng (Tùy chọn)</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xVal">
+          Tính giá trị <code>P_n(x*)</code> tại <code>x*</code>
+        </label>
+        <input
+          className="form-input"
+          id="in-xVal"
+          name="xVal"
+          type="text"
+          spellCheck={false}
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>3.1</code> (để trống nếu chỉ muốn tìm đa thức)
         </div>
       </div>
     </>

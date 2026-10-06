@@ -9,6 +9,8 @@ import { runPolyDivideHorner } from "@/lib/algorithms/poly-divide-horner";
 import { runPolyDerivativeHorner } from "@/lib/algorithms/poly-derivative-horner";
 import { runPolyProductLinear } from "@/lib/algorithms/poly-product-linear";
 import { runLagrangeInterpolation } from "@/lib/algorithms/lagrange-interpolation";
+import { runNewtonForwardInterpolation } from "@/lib/algorithms/newton-forward-interpolation";
+import { runNewtonBackwardInterpolation } from "@/lib/algorithms/newton-backward-interpolation";
 import { runGauss } from "@/lib/algorithms/gauss";
 import { runGaussJordan } from "@/lib/algorithms/gaussjordan";
 import { runNewtonSystem } from "@/lib/algorithms/newton-system";
@@ -152,6 +154,28 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
       xVal: "",
     },
     run: runLagrangeInterpolation,
+  },
+  "newton-forward-interpolation": {
+    title: "Nội Suy Newton Tiến",
+    subtitle: "Tìm đa thức P_n(x) qua bảng tỷ sai phân (mốc bất kỳ) — Newton Forward",
+    icon: "∇",
+    defaultValues: {
+      xList: "1.2 1.5 1.7 1.9 2.1 2.4",
+      yList: "0.7247 0.1415 -0.2577 -0.6466 -1.0097 -1.4748",
+      xVal: "",
+    },
+    run: runNewtonForwardInterpolation,
+  },
+  "newton-backward-interpolation": {
+    title: "Nội Suy Newton Lùi",
+    subtitle: "Tìm đa thức P_n(x) qua bảng tỷ sai phân (đường chéo đáy) — Newton Backward",
+    icon: "Δ",
+    defaultValues: {
+      xList: "2.2 2.3 2.6 2.7 3.0 3.2",
+      yList: "1.617 1.4914 1.031 0.8548 0.2822 -0.1167",
+      xVal: "",
+    },
+    run: runNewtonBackwardInterpolation,
   },
   gauss: {
     title: "Phương Pháp Gauss",
@@ -415,6 +439,8 @@ export const PPS_SIDEBAR_SECTIONS = [
       "poly-derivative-horner",
       "poly-product-linear",
       "lagrange-interpolation",
+      "newton-forward-interpolation",
+      "newton-backward-interpolation",
     ] as AlgorithmKey[],
   },
 ] as const;
