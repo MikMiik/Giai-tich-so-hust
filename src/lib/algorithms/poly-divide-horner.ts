@@ -25,30 +25,32 @@ export function runPolyDivideHorner(
   const cFmt = fmtNum(c);
   const linearPolyStr = c >= 0 ? `(x - ${cFmt})` : `(x + ${fmtNum(Math.abs(c))})`;
 
-  logger.section("1. THIẾT LẬP PHÉP CHIA THEO SƠ ĐỒ HORNER");
-  logger.info(`Đa thức bị chia bậc $n = ${n}$: $$P_n(x) = ${fmtPoly(aCoeffs)}$$`);
-  logger.info(`Đa thức chia: $$D(x) = ${linearPolyStr} \\quad (c = ${cFmt})$$`);
+  logger.section("ĐẦU VÀO");
+  logger.formula(`$$P_n(x) = ${fmtPoly(aCoeffs)}, \\qquad D(x) = ${linearPolyStr}$$`);
+  logger.section("SƠ ĐỒ HORNER");
   logger.formula(
-    `$$\\text{Dạng khai triển: } P_n(x) = ${linearPolyStr} \\cdot Q(x) + r, \\quad Q(x) = b_n x^{${Math.max(0, n - 1)}} + \\dots + b_1$$`,
+    n === 0
+      ? "$$r = a_0$$"
+      : `$$b_n = a_n, \\qquad b_i = c b_{i+1} + a_i \\ (i=n-1,\\ldots,1), \\qquad r = c b_1 + a_0$$`,
   );
-
-  // 3. Thực hiện sơ đồ Horner
-  logger.section("2. QUÁ TRÌNH TÍNH TOÁN THEO SƠ ĐỒ HORNER");
 
   // b_arr chứa [b_n, b_{n-1}, ..., b_1, r] (độ dài n + 1)
   const bList: number[] = [];
   const stepTableData: Record<string, unknown>[] = [];
 
-  // Bước khởi tạo: b_n = a_n
   let currentB = aCoeffs[0];
   bList.push(currentB);
-
-  stepTableData.push({
-    "Bậc": `$x^{${n}}$`,
-    "Hệ số $a_i$": `$a_{${n}} = ${fmtNum(aCoeffs[0])}$`,
-    "Tích $c \\cdot b_{i+1}$": "—",
-    "Kết quả": `$b_{${n}} = a_{${n}} = ${fmtNum(currentB)}$`,
-  });
+  if (n === 0) {
+    stepTableData.push({
+      "Hệ số": "$r$",
+      "Tính": `$r = a_0 = ${fmtNum(currentB)}$`,
+    });
+  } else {
+    stepTableData.push({
+      "Hệ số": `$b_${n}$`,
+      "Tính": `$b_${n} = a_${n} = ${fmtNum(currentB)}$`,
+    });
+  }
 
   // Các bước tiếp theo: b_i = b_{i+1} * c + a_i (từ a_{n-1} đến a_0)
   for (let idx = 1; idx <= n; idx++) {
@@ -60,53 +62,27 @@ export function runPolyDivideHorner(
     bList.push(currentB);
 
     const isRemainder = idx === n;
-    const targetLabel = isRemainder ? `$r = P_n(${cFmt})$` : `$b_{${power + 1}}$`;
-
     stepTableData.push({
-      "Bậc": isRemainder ? "$x^0$ (Số dư)" : `$x^{${power}}$`,
-      "Hệ số $a_i$": `$a_{${power}} = ${fmtNum(ai)}$`,
-      "Tích $c \\cdot b_{i+1}$": `$(${cFmt}) \\cdot (${fmtNum(prevB)}) = ${fmtNum(prod)}$`,
-      "Kết quả": `${targetLabel} $= ${fmtNum(prod)} + (${fmtNum(ai)}) = ${fmtNum(currentB)}$`,
+      "Hệ số": isRemainder ? "$r$" : `$b_${power}$`,
+      "Tính": isRemainder
+        ? `$r = (${cFmt}) \\cdot (${fmtNum(prevB)}) + (${fmtNum(ai)}) = ${fmtNum(currentB)}$`
+        : `$b_${power} = (${cFmt}) \\cdot (${fmtNum(prevB)}) + (${fmtNum(ai)}) = ${fmtNum(currentB)}$`,
     });
   }
 
   logger.table(stepTableData);
-
-  // Hiển thị bảng sơ đồ Horner 2 dòng kinh điển
-  logger.section("BẢNG SƠ ĐỒ HORNER RÚT GỌN");
-  const hornerHeaders: Record<string, unknown> = {
-    "$c$": `$c = ${cFmt}$`,
-  };
-  const hornerRowA: Record<string, unknown> = {
-    "$c$": "$a_i$",
-  };
-  const hornerRowB: Record<string, unknown> = {
-    "$c$": "$b_i, r$",
-  };
-
-  for (let i = 0; i <= n; i++) {
-    const power = n - i;
-    const key = `$a_{${power}}$`;
-    hornerHeaders[key] = power === 0 ? "Dư $r$" : `$x^{${power}}$`;
-    hornerRowA[key] = `$${fmtNum(aCoeffs[i])}$`;
-    hornerRowB[key] = `$${fmtNum(bList[i])}$`;
-  }
-
-  logger.table([hornerRowA, hornerRowB]);
   logger.separator();
 
-  // 4. Tổng hợp kết quả
-  logger.section("3. KẾT QUẢ PHÉP CHIA & PHẦN DƯ");
+  logger.section("KẾT QUẢ");
   const qCoeffs = bList.slice(0, n); // [b_n, b_{n-1}, ..., b_1]
   const remainder = bList[n];
 
-  logger.success("✔ Hoàn thành phép chia đa thức.");
   if (qCoeffs.length > 0) {
-    logger.result(`$$\\text{Đa thức thương: } Q(x) = ${fmtPoly(qCoeffs)}$$`);
+    logger.result(`$$Q(x) = ${fmtPoly(qCoeffs)}$$`);
   } else {
-    logger.result(`$$\\text{Đa thức thương: } Q(x) = 0$$`);
+    logger.result("$$Q(x) = 0$$");
   }
-  logger.result(`$$\\text{Phần dư: } r = P_n(${cFmt}) = ${fmtNum(remainder)}$$`);
+  logger.result(`$$r = P_n(${cFmt}) = ${fmtNum(remainder)}$$`);
 
   // Biểu diễn đẳng thức chia
   const qStr = qCoeffs.length > 0 ? `(${fmtPoly(qCoeffs)})` : "0";

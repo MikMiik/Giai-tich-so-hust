@@ -25,27 +25,26 @@ export function runPolyProductLinear(
   });
   const productFormula = factorStrings.join(" \\cdot ");
 
-  logger.section("1. THIẾT LẬP BÀI TOÁN TÍCH NHIỀU ĐA THỨC");
-  logger.info(`Số lượng nhân tử bậc nhất: $n = ${n}$`);
-  logger.info(`Dãy nghiệm: $c = [${cValues.map((v) => fmtNum(v)).join(", ")}]$`);
+  logger.section("ĐẦU VÀO");
   logger.formula(`$$P(x) = \\prod_{k=1}^{${n}} (x - c_k) = ${productFormula}$$`);
-  logger.formula(
-    `$$\\text{Mục tiêu: Khai triển } P(x) = a_{${n}} x^{${n}} + a_{${n - 1}} x^{${n - 1}} + \\dots + a_1 x + a_0$$`,
-  );
 
-  // 2. Thực hiện thuật toán nhân dồn
-  logger.section("2. BẢNG TÍNH TOÁN NHÂN DỒN TỪNG BƯỚC");
+  // Khởi tạo và cập nhật theo từng nhân tử như trong thuật toán.
+  logger.section("NHÂN DỒN HỆ SỐ");
 
   // Khởi tạo mảng A độ dài n + 1: A = [0, 0, ..., 0, 1]
   // Vị trí i = 0 tương ứng x^n, i = 1 tương ứng x^(n-1), ..., i = n tương ứng x^0 (hệ số tự do 1)
   let A: number[] = Array(n + 1).fill(0);
   A[n] = 1;
+  logger.info(`Khởi tạo: $$A^{(0)} = [${A.map((value) => fmtNum(value)).join(", ")}]$$`);
+  logger.formula(
+    `$$B_i = A_{i+1} - c_k \\cdot A_i \\quad (i=n,\\ldots,0), \\qquad A_{n+1}=0, \\qquad A \\leftarrow B$$`,
+  );
 
   const tableData: Record<string, unknown>[] = [];
 
-  // Hàng khởi tạo (k = 0)
   const initRow: Record<string, unknown> = {
-    "$c_k$": "—",
+    "Bước": "$A^{(0)}$",
+    "Nhân tử": "—",
   };
   for (let i = 0; i <= n; i++) {
     const power = n - i;
@@ -68,7 +67,8 @@ export function runPolyProductLinear(
 
     // Thêm hàng vào bảng
     const rowObj: Record<string, unknown> = {
-      "$c_k$": fmtNum(ck),
+      "Bước": `$A^{(${k})}$`,
+      "Nhân tử": `$${factorStrings[k - 1]}$`,
     };
     for (let i = 0; i <= n; i++) {
       const power = n - i;
@@ -81,14 +81,8 @@ export function runPolyProductLinear(
   logger.table(tableData);
   logger.separator();
 
-  // 3. Tổng hợp kết quả
-  logger.section("3. KẾT QUẢ ĐA THỨC KHAI TRIỂN");
+  logger.section("KẾT QUẢ");
   const aCoeffs = [...A]; // [a_n, a_{n-1}, ..., a_0]
 
-  logger.success(`✔ Khai triển thành công tích ${n} đa thức bậc nhất.`);
-  logger.result(
-    `$$\\{a_{${n}}, a_{${n - 1}}, \\dots, a_0\\} = \\{${aCoeffs.map((v) => fmtNum(v)).join(", ")}\\}$$`,
-  );
   logger.result(`$$P(x) = ${fmtPoly(aCoeffs)}$$`);
-  logger.info(`Đẳng thức hoàn chỉnh: $$${productFormula} = ${fmtPoly(aCoeffs)}$$`);
 }

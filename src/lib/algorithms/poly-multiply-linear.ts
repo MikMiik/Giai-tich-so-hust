@@ -25,75 +25,48 @@ export function runPolyMultiplyLinear(
   const cFmt = fmtNum(c);
   const linearPolyStr = c >= 0 ? `(x - ${cFmt})` : `(x + ${fmtNum(Math.abs(c))})`;
 
-  logger.section("1. ĐA THỨC ĐẦU VÀO VÀ THIẾT LẬP");
-  logger.info(`Bậc của đa thức $P(x)$: $m = ${m}$`);
-  logger.formula(`$$P(x) = ${fmtPoly(bCoeffs)}$$`);
-  logger.info(`Đa thức bậc nhất: $Q_1(x) = ${linearPolyStr}$ (với $c = ${cFmt}$)`);
-  logger.formula(
-    `$$\\text{Mục tiêu: Tính } A(x) = ${linearPolyStr} \\cdot P(x) = a_{${m + 1}} x^{${m + 1}} + a_{${m}} x^{${m}} + \\dots + a_0$$`,
-  );
+  logger.section("ĐẦU VÀO");
+  logger.formula(`$$P(x) = ${fmtPoly(bCoeffs)}, \\qquad A(x) = ${linearPolyStr}P(x)$$`);
 
-  // 3. Thực hiện thuật toán
-  logger.section("2. QUÁ TRÌNH TÍNH TOÁN CÁC HỆ SỐ a_i");
-
-  // Dãy b có m+1 phần tử: bCoeffs[0] = b_m, bCoeffs[1] = b_{m-1}, ..., bCoeffs[m] = b_0
-  // Đặt b_arr: b_arr[k] là hệ số của x^k trong P(x) (0 <= k <= m)
-  const bPow: number[] = [];
-  for (let i = 0; i <= m; i++) {
-    bPow[m - i] = bCoeffs[i]; // bPow[k] là hệ số của x^k
-  }
-
-  // a có m+2 phần tử từ a_{m+1} đến a_0
-  const aPow: number[] = Array(m + 2).fill(0);
+  // Theo thuật toán, nối thêm hệ số 0 để cùng áp dụng một quy tắc cho
+  // tất cả hệ số của tích: a_i = B_i - c · a_(i+1).
+  const inputCoeffs = [...bCoeffs, 0];
+  const aCoeffs: number[] = Array(m + 2).fill(0);
   const tableData: Record<string, unknown>[] = [];
 
-  // a_{m+1} = b_m
-  aPow[m + 1] = bPow[m];
+  logger.section("TÍNH HỆ SỐ THEO THỨ TỰ GIẢM DẦN");
+  logger.info(
+    `Nối $0$ vào cuối dãy hệ số: $$B = [${inputCoeffs.map((value) => fmtNum(value)).join(", ")}]$$`,
+  );
+  logger.formula(
+    `$$a_{${m + 1}} = b_${m}, \\qquad a_i = B_{${m + 1}-i} - c \\cdot a_{i + 1} \\quad (i = ${m}, \\ldots, 0)$$`,
+  );
+
+  aCoeffs[0] = bCoeffs[0];
   tableData.push({
-    "Bậc $i$": `$x^{${m + 1}}$`,
-    "Hệ số $a_i$": `$a_{${m + 1}}$`,
-    "Công thức": `$b_{${m}}$`,
-    "Phép tính": `$${fmtNum(bPow[m])}$`,
-    "Giá trị $a_i$": `$${fmtNum(aPow[m + 1])}$`,
+    "Hệ số": `$a_{${m + 1}}$`,
+    "Tính": `$a_{${m + 1}} = b_{${m}} = ${fmtNum(aCoeffs[0])}$`,
   });
 
-  // a_i = b_{i-1} - c * b_i (với i = m lùi về 1)
-  for (let i = m; i >= 1; i--) {
-    const term1 = bPow[i - 1];
-    const term2 = c * bPow[i];
-    aPow[i] = term1 - term2;
+  for (let index = 1; index <= m + 1; index++) {
+    const power = m + 1 - index;
+    const source = inputCoeffs[index];
+    const previous = aCoeffs[index - 1];
+    const product = c * previous;
+    const value = source - product;
+    aCoeffs[index] = value;
 
-    const term2Sign = c * bPow[i] >= 0 ? `- ${fmtNum(term2)}` : `+ ${fmtNum(Math.abs(term2))}`;
     tableData.push({
-      "Bậc $i$": `$x^{${i}}$`,
-      "Hệ số $a_i$": `$a_{${i}}$`,
-      "Công thức": `$b_{${i - 1}} - c \\cdot b_{${i}}$`,
-      "Phép tính": `$${fmtNum(term1)} ${term2Sign}$`,
-      "Giá trị $a_i$": `$${fmtNum(aPow[i])}$`,
+      "Hệ số": `$a_{${power}}$`,
+      "Tính": `$a_{${power}} = ${fmtNum(source)} - (${cFmt}) \\cdot (${fmtNum(previous)}) = ${fmtNum(value)}$`,
     });
   }
-
-  // a_0 = -c * b_0
-  aPow[0] = -c * bPow[0];
-  tableData.push({
-    "Bậc $i$": `$x^0$`,
-    "Hệ số $a_i$": `$a_0$`,
-    "Công thức": `$-c \\cdot b_0$`,
-    "Phép tính": `$-(${cFmt}) \\cdot (${fmtNum(bPow[0])})$`,
-    "Giá trị $a_i$": `$${fmtNum(aPow[0])}$`,
-  });
 
   logger.table(tableData);
   logger.separator();
 
-  // 4. Tổng hợp kết quả
-  logger.section("3. KẾT QUẢ ĐA THỨC TÍCH A(x)");
-  const aCoeffs: number[] = [];
-  for (let i = m + 1; i >= 0; i--) {
-    aCoeffs.push(aPow[i]);
-  }
+  logger.section("KẾT QUẢ");
 
-  logger.success("✔ Hoàn thành phép nhân đa thức.");
   logger.result(`$$\\{a_{${m + 1}}, a_{${m}}, \\dots, a_0\\} = \\{${aCoeffs.map((v) => fmtNum(v)).join(", ")}\\}$$`);
   logger.result(`$$A(x) = ${fmtPoly(aCoeffs)}$$`);
 }

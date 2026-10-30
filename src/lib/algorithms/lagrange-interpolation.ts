@@ -48,8 +48,7 @@ export function runLagrangeInterpolation(
     }
   }
 
-  logger.section("1. BẢNG DỮ LIỆU ĐẦU VÀO");
-  logger.info(`Số mốc nội suy: $N = ${numPoints}$ (Bậc đa thức tối đa $n = ${n}$)`);
+  logger.section("ĐẦU VÀO");
 
   const inputTable: Record<string, unknown>[] = [];
   for (let i = 0; i < numPoints; i++) {
@@ -61,21 +60,17 @@ export function runLagrangeInterpolation(
   }
   logger.table(inputTable);
 
-  logger.formula(
-    `$$\\text{Dạng tổng quát: } P_n(x) = \\sum_{i=0}^{${n}} y_i L_i(x) = \\sum_{i=0}^{${n}} y_i \\frac{\\prod_{j \\ne i} (x - x_j)}{D_i} = \\sum_{i=0}^{${n}} A_i \\prod_{j \\ne i} (x - x_j)$$`,
-  );
+  logger.formula(`$$P_n(x) = \\sum_{i=0}^{${n}} T_i \\prod_{\\substack{0 \\le j \\le ${n} \\\\ j \\ne i}}(x-x_j), \\qquad T_i = \\frac{y_i}{D_i}$$`);
 
-  // 2. Tính mẫu số D_i và hệ số A_i = y_i / D_i
-  logger.section("2. BẢNG TÍNH MẪU SỐ D_i VÀ HỆ SỐ A_i");
+  logger.section("HỆ SỐ CỦA CÁC HẠNG LAGRANGE");
 
   const D: number[] = [];
   const A: number[] = [];
-  const diffsTable: Record<string, unknown>[] = [];
+  const coefficientTable: Record<string, unknown>[] = [];
 
   for (let i = 0; i < numPoints; i++) {
     let di = 1;
     const diffTerms: string[] = [];
-
     for (let j = 0; j < numPoints; j++) {
       if (j === i) continue;
       const diff = X[i] - X[j];
@@ -87,43 +82,17 @@ export function runLagrangeInterpolation(
     const ai = Y[i] / di;
     A.push(ai);
 
-    diffsTable.push({
+    coefficientTable.push({
       "$i$": `$${i}$`,
-      "$x_i$": `$${fmtNum(X[i])}$`,
-      "$y_i$": `$${fmtNum(Y[i])}$`,
-      "Các hiệu $(x_i - x_j)$": `$${diffTerms.join(" \\cdot ")}$`,
-      "$D_i = \\prod (x_i - x_j)$": `$${fmtNum(di, 5)}$`,
-      "$A_i = \\frac{y_i}{D_i}$": `**$${fmtNum(ai, 4)}$**`,
+      "$D_i = \\prod_{j \\ne i}(x_i-x_j)$": `$${diffTerms.join(" × ")} = ${fmtNum(di, 5)}$`,
+      "$T_i = y_i / D_i$": `$${fmtNum(Y[i])} / (${fmtNum(di, 5)}) = ${fmtNum(ai, 4)}$`,
     });
   }
 
-  logger.table(diffsTable);
+  logger.table(coefficientTable);
 
-  // 3. Biểu diễn dạng tường minh của Lagrange
-  logger.section("3. ĐA THỨC LAGRANGE DẠNG TƯỜNG MINH");
-
-  const explicitLines: string[] = [];
-  for (let i = 0; i < numPoints; i++) {
-    const ai = A[i];
-    const aiAbs = Math.abs(ai);
-    const sign = i === 0 ? (ai < 0 ? "-" : "") : ai < 0 ? "- " : "+ ";
-
-    const factorTerms: string[] = [];
-    for (let j = 0; j < numPoints; j++) {
-      if (j === i) continue;
-      const xj = X[j];
-      const xjFmt = fmtNum(xj);
-      factorTerms.push(xj >= 0 ? `(x - ${xjFmt})` : `(x + ${fmtNum(Math.abs(xj))})`);
-    }
-
-    explicitLines.push(`${sign}${fmtNum(aiAbs, 4)}${factorTerms.join("")}`);
-  }
-
-  logger.formula(`$$P_{${n}}(x) = ${explicitLines.join(" \\\\ ")}$$`);
-  logger.separator();
-
-  // 4. Khai triển thành dạng chính tắc P_n(x) = a_n x^n + ... + a_0
-  // Bước 4.1: Tính w_{n+1}(x) = \prod_{k=0}^n (x - x_k)
+  logger.section("TÍCH CƠ SỞ");
+  // Tính w_{n+1}(x) = \prod_{k=0}^n (x - x_k)
   // w = [w_{n+1}, w_n, ..., w_0]
   let w: number[] = [1]; // Bắt đầu từ đa thức 1
   for (let k = 0; k < numPoints; k++) {
@@ -136,9 +105,9 @@ export function runLagrangeInterpolation(
     nextW[w.length] = -xk * w[w.length - 1];
     w = nextW;
   }
+  logger.formula(`$$w_{${n + 1}}(x) = \\prod_{j=0}^{${n}}(x-x_j) = ${fmtPoly(w)}$$`);
 
-  // Bước 4.2: Với mỗi i, chia Horner w(x) cho (x - x_i) để tìm tử số L_i_num(x), sau đó nhân A_i và cộng dồn
-  // P_coeffs có bậc n, mảng [p_n, p_{n-1}, ..., p_0]
+  // Với mỗi i, chia Horner w(x) cho (x - x_i), rồi cộng T_i q_i(x).
   const P_coeffs: number[] = Array(numPoints).fill(0);
 
   for (let i = 0; i < numPoints; i++) {
@@ -157,20 +126,17 @@ export function runLagrangeInterpolation(
     for (let j = 0; j < numPoints; j++) {
       P_coeffs[j] += ai * qCoeffs[j];
     }
+
   }
 
-  logger.section("4. ĐA THỨC KHAI TRIỂN CHÍNH TẮC");
-  logger.success("✔ Hoàn thành khai triển đa thức nội suy Lagrange.");
-  logger.result(
-    `$$\\{a_{${n}}, a_{${n - 1}}, \\dots, a_0\\} = \\{${P_coeffs.map((v) => fmtNum(v)).join(", ")}\\}$$`,
-  );
+  logger.section("KẾT QUẢ");
   logger.result(`$$P_{${n}}(x) = ${fmtPoly(P_coeffs)}$$`);
 
   // 5. Nếu người dùng nhập điểm x*, tính giá trị ước lượng P_n(x*)
   if (xValStr && xValStr.trim() !== "") {
     const xStar = parseFraction(xValStr);
     if (!isNaN(xStar)) {
-      logger.section("5. TÍNH GIÁ TRỊ TẠI ĐIỂM ƯỚC LƯỢNG");
+      logger.section("GIÁ TRỊ NỘI SUY");
       // Tính giá trị P(xStar) bằng lược đồ Horner
       let valStar = P_coeffs[0];
       for (let j = 1; j < numPoints; j++) {

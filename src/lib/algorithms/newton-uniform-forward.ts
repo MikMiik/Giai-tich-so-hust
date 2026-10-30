@@ -41,7 +41,8 @@ function logForwardDiffTable(
       const colTitle = `$\\Delta^{${j}}y$`;
       if (i < numPoints - j) {
         const val = d[i][j];
-        rowObj[colTitle] = i === 0 ? `**$${fmtNum(val)}$**` : `$${fmtNum(val)}$`;
+        rowObj[colTitle] =
+          i === 0 ? `**$${fmtNum(val)}$**` : `$${fmtNum(val)}$`;
       } else {
         rowObj[colTitle] = "—";
       }
@@ -188,7 +189,7 @@ function runCoreUniformForward(
 
   logger.section(`${sIdx(2)}. HỆ SỐ NEWTON TIẾN`);
   const coeffRows: Record<string, unknown>[] = c.map((ck, k) => ({
-    "$k$": `$${k}$`,
+    $k$: `$${k}$`,
     "$c_k = \\Delta^k y_0$": `$${fmtNum(ck)}$`,
     "$c_k / k!$": `$${fmtNum(ck / factorial(k))}$`,
   }));
@@ -197,12 +198,8 @@ function runCoreUniformForward(
 
   // --- Dạng đa thức theo t ---
   logger.section(`${sIdx(3)}. ĐA THỨC NEWTON TIẾN THEO BIẾN $t$`);
-  logger.formula(
-    `$$t = \\frac{x - ${fmtNum(x0)}}{${fmtNum(h)}}$$`,
-  );
-  logger.formula(
-    `$$P_{${n}}(t) = ${buildPnTLatex(c, n)}$$`,
-  );
+  logger.formula(`$$t = \\frac{x - ${fmtNum(x0)}}{${fmtNum(h)}}$$`);
+  logger.formula(`$$P_{${n}}(t) = ${buildPnTLatex(c, n)}$$`);
   logger.info(
     `Khai triển $P_{${n}}(t)$ rồi thay $t = \\frac{x - ${fmtNum(x0)}}{${fmtNum(h)}}$ để ra dạng chính tắc theo $x$.`,
   );
@@ -211,7 +208,9 @@ function runCoreUniformForward(
   // --- Khai triển chính tắc theo x ---
   logger.section(`${sIdx(4)}. ĐA THỨC KHAI TRIỂN CHÍNH TẮC THEO $x$`);
   const standardCoeffs = expandToStandardCoeffs(c, x0, h, n);
-  logger.success(`✔ Hoàn thành khai triển đa thức nội suy Newton tiến (cách đều).`);
+  logger.success(
+    `✔ Hoàn thành khai triển đa thức nội suy Newton tiến (cách đều).`,
+  );
   logger.result(
     `$$\\{a_{${n}}, \\dots, a_0\\} = \\{${standardCoeffs.map((v) => fmtNum(v)).join(", ")}\\}$$`,
   );
@@ -221,9 +220,13 @@ function runCoreUniformForward(
   if (xStar !== null) {
     logger.section(`${sIdx(5)}. TÍNH GIÁ TRỊ TẠI ĐIỂM ƯỚC LƯỢNG`);
     const tStar = (xStar - x0) / h;
-    logger.formula(`$$t^* = \\frac{x^* - ${fmtNum(x0)}}{${fmtNum(h)}} = \\frac{${fmtNum(xStar)} - ${fmtNum(x0)}}{${fmtNum(h)}} = ${fmtNum(tStar)}$$`);
+    logger.formula(
+      `$$t^* = \\frac{x^* - ${fmtNum(x0)}}{${fmtNum(h)}} = \\frac{${fmtNum(xStar)} - ${fmtNum(x0)}}{${fmtNum(h)}} = ${fmtNum(tStar)}$$`,
+    );
     const valStar = evalPnByT(c, tStar);
-    logger.result(`$$P_{${n}}(${fmtNum(xStar)}) = P_{${n}}(t^* = ${fmtNum(tStar)}) = ${fmtNum(valStar)}$$`);
+    logger.result(
+      `$$P_{${n}}(${fmtNum(xStar)}) = P_{${n}}(t^* = ${fmtNum(tStar)}) = ${fmtNum(valStar)}$$`,
+    );
   }
 }
 
@@ -268,7 +271,9 @@ export function runNewtonUniformForward(
   // Kiểm tra cách đều
   const h0 = X[1] - X[0];
   if (Math.abs(h0) < 1e-12) {
-    logger.error("Bước lưới $h = x_1 - x_0 = 0$. Các mốc phải đôi một khác nhau.");
+    logger.error(
+      "Bước lưới $h = x_1 - x_0 = 0$. Các mốc phải đôi một khác nhau.",
+    );
     return;
   }
   for (let i = 2; i < X.length; i++) {
@@ -276,7 +281,7 @@ export function runNewtonUniformForward(
     if (Math.abs(hi - h0) / Math.abs(h0) > 1e-6) {
       logger.error(
         `Các mốc $x_i$ không cách đều. Thuật toán này yêu cầu bước lưới $h$ không đổi. ` +
-          `Phát hiện $h_{${i-1}} = ${fmtNum(hi)} \\neq h_0 = ${fmtNum(h0)}$.`,
+          `Phát hiện $h_{${i - 1}} = ${fmtNum(hi)} \\neq h_0 = ${fmtNum(h0)}$.`,
       );
       return;
     }
@@ -297,9 +302,9 @@ export function runNewtonUniformForward(
     );
 
     const inputTable: Record<string, unknown>[] = X.map((xi, i) => ({
-      "$i$": `$${i}$`,
-      "$x_i$": `$${fmtNum(xi)}$`,
-      "$y_i$": `$${fmtNum(Y[i])}$`,
+      $i$: `$${i}$`,
+      $x_i$: `$${fmtNum(xi)}$`,
+      $y_i$: `$${fmtNum(Y[i])}$`,
     }));
     logger.table(inputTable);
 
@@ -333,9 +338,9 @@ export function runNewtonUniformForward(
       `Tổng số mốc: $N_{total} = ${N}$, bước lưới $h = ${fmtNum(h0)}$. Điểm cần tính $x^* = ${fmtNum(xStar)}$.`,
     );
     const inputTable: Record<string, unknown>[] = X.map((xi, i) => ({
-      "$i$": `$${i}$`,
-      "$x_i$": `$${fmtNum(xi)}$`,
-      "$y_i$": `$${fmtNum(Y[i])}$`,
+      $i$: `$${i}$`,
+      $x_i$: `$${fmtNum(xi)}$`,
+      $y_i$: `$${fmtNum(Y[i])}$`,
     }));
     logger.table(inputTable);
     logger.separator();
@@ -344,8 +349,12 @@ export function runNewtonUniformForward(
     logger.section("2. XÁC ĐỊNH SỐ MỐC VÀ MỐC BẮT ĐẦU TỐI ƯU");
     const K = Math.round(1 / Math.abs(h0));
     const n = K + 1; // số mốc cần chọn
-    logger.info(`$K = \\text{round}\\left(\\frac{1}{h}\\right) = \\text{round}\\left(\\frac{1}{${fmtNum(h0)}}\\right) = ${K}$ khoảng`);
-    logger.info(`Số mốc cần chọn: $n = K + 1 = ${n}$ mốc (bậc đa thức $= n - 1 = ${n - 1}$)`);
+    logger.info(
+      `$K = \\text{round}\\left(\\frac{1}{h}\\right) = \\text{round}\\left(\\frac{1}{${fmtNum(h0)}}\\right) = ${K}$ khoảng`,
+    );
+    logger.info(
+      `Số mốc cần chọn: $n = K + 1 = ${n}$ mốc (bậc đa thức $= n - 1 = ${n - 1}$)`,
+    );
 
     if (n > N) {
       logger.error(
@@ -382,8 +391,8 @@ export function runNewtonUniformForward(
     const subTable: Record<string, unknown>[] = Xsub.map((xi, i) => ({
       "$i_{sub}$": `$${i}$`,
       "$i_{gốc}$": `$${idx + i}$`,
-      "$x_i$": `$${fmtNum(xi)}$`,
-      "$y_i$": `$${fmtNum(Ysub[i])}$`,
+      $x_i$: `$${fmtNum(xi)}$`,
+      $y_i$: `$${fmtNum(Ysub[i])}$`,
     }));
     logger.table(subTable);
     logger.separator();

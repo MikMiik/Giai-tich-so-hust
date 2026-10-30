@@ -101,6 +101,9 @@ function FormFields({
       return <NewtonBackwardInterpolationFields onKeyDown={onKeyDown} />;
     case "newton-uniform-forward":
       return <NewtonUniformForwardFields onKeyDown={onKeyDown} />;
+    case "gauss-forward-interpolation":
+    case "gauss-backward-interpolation":
+      return <GaussCentralFields method={method} onKeyDown={onKeyDown} />;
     case "gauss":
       return <MatrixFields />;
     case "gaussjordan":
@@ -704,6 +707,48 @@ function NewtonUniformForwardFields({ onKeyDown }: FieldProps) {
             <>Bắt buộc. Ví dụ: <code>1.1</code> — thuật toán sẽ tự chọn mốc tối ưu xung quanh điểm này.</>
           )}
         </div>
+      </div>
+    </>
+  );
+}
+
+function GaussCentralFields({
+  method,
+  onKeyDown,
+}: FieldProps & { method: "gauss-forward-interpolation" | "gauss-backward-interpolation" }) {
+  const isForward = method === "gauss-forward-interpolation";
+
+  return (
+    <>
+      <div className="matrix-help">
+        Nhập các mốc cách đều. Chỉ số mốc trung tâm bắt đầu từ <code>0</code>.
+        {" "}{isForward ? "Gauss tiến dùng x* ở bên phải mốc trung tâm." : "Gauss lùi dùng x* ở bên trái mốc trung tâm."}
+      </div>
+      <div className="form-section-title">Bảng dữ liệu</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xList">Dãy mốc X (cách đều)</label>
+        <input className="form-input" id="in-xList" name="xList" type="text" spellCheck={false} onKeyDown={onKeyDown} />
+        <div className="form-hint">Ví dụ: <code>-2 -1 0 1 2</code></div>
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-yList">Dãy giá trị Y</label>
+        <input className="form-input" id="in-yList" name="yList" type="text" spellCheck={false} onKeyDown={onKeyDown} />
+        <div className="form-hint">Ví dụ: <code>4 1 0 1 4</code></div>
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-centerIndex">Chỉ số mốc trung tâm</label>
+          <input className="form-input" id="in-centerIndex" name="centerIndex" type="number" min="0" step="1" onKeyDown={onKeyDown} />
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-degree">Bậc nội suy</label>
+          <input className="form-input" id="in-degree" name="degree" type="number" min="1" step="1" onKeyDown={onKeyDown} />
+        </div>
+      </div>
+      <div className="form-section-title">Điểm nội suy</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xVal">Điểm x*</label>
+        <input className="form-input" id="in-xVal" name="xVal" type="text" spellCheck={false} onKeyDown={onKeyDown} />
       </div>
     </>
   );

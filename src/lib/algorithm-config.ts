@@ -12,6 +12,7 @@ import { runLagrangeInterpolation } from "@/lib/algorithms/lagrange-interpolatio
 import { runNewtonForwardInterpolation } from "@/lib/algorithms/newton-forward-interpolation";
 import { runNewtonBackwardInterpolation } from "@/lib/algorithms/newton-backward-interpolation";
 import { runNewtonUniformForward } from "@/lib/algorithms/newton-uniform-forward";
+import { runGaussBackwardInterpolation, runGaussForwardInterpolation } from "@/lib/algorithms/gauss-central";
 import { runGauss } from "@/lib/algorithms/gauss";
 import { runGaussJordan } from "@/lib/algorithms/gaussjordan";
 import { runNewtonSystem } from "@/lib/algorithms/newton-system";
@@ -189,6 +190,32 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
       xVal: "1.1",
     },
     run: runNewtonUniformForward,
+  },
+  "gauss-forward-interpolation": {
+    title: "Nội Suy Gauss Tiến",
+    subtitle: "Nội suy trung tâm từ sai phân hữu hạn — Gauss I",
+    icon: "G+",
+    defaultValues: {
+      xList: "-2 -1 0 1 2",
+      yList: "4 1 0 1 4",
+      centerIndex: "2",
+      degree: "4",
+      xVal: "0.4",
+    },
+    run: runGaussForwardInterpolation,
+  },
+  "gauss-backward-interpolation": {
+    title: "Nội Suy Gauss Lùi",
+    subtitle: "Nội suy trung tâm từ sai phân hữu hạn — Gauss II",
+    icon: "G−",
+    defaultValues: {
+      xList: "-2 -1 0 1 2",
+      yList: "4 1 0 1 4",
+      centerIndex: "2",
+      degree: "4",
+      xVal: "-0.4",
+    },
+    run: runGaussBackwardInterpolation,
   },
   gauss: {
     title: "Phương Pháp Gauss",
@@ -455,6 +482,8 @@ export const PPS_SIDEBAR_SECTIONS = [
       "newton-forward-interpolation",
       "newton-backward-interpolation",
       "newton-uniform-forward",
+      "gauss-forward-interpolation",
+      "gauss-backward-interpolation",
     ] as AlgorithmKey[],
   },
 ] as const;

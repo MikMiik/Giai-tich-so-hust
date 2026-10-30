@@ -38,16 +38,23 @@ export function runPolyDerivativeHorner(
   const n = aCoeffs.length - 1; // Bậc đa thức
   const cFmt = fmtNum(c);
 
-  logger.section("1. THIẾT LẬP BÀI TOÁN");
-  logger.info(`Đa thức bậc $n = ${n}$: $$P_n(x) = ${fmtPoly(aCoeffs)}$$`);
-  logger.info(`Điểm tính đạo hàm: $c = ${cFmt}$`);
-  logger.info(`Cấp đạo hàm cần tính: $k = ${k}$`);
+  logger.section("ĐẦU VÀO");
+  logger.formula(`$$P_n(x) = ${fmtPoly(aCoeffs)}, \\qquad c = ${cFmt}, \\qquad k = ${k}$$`);
 
   // Trường hợp k > n: Đạo hàm cấp lớn hơn bậc đa thức luôn bằng 0
   if (k > n) {
-    logger.section("2. KẾT QUẢ");
-    logger.warn(`Cấp đạo hàm $k = ${k}$ lớn hơn bậc của đa thức ($n = ${n}$).`);
+    logger.section("KẾT QUẢ");
     logger.result(`$$P_n^{(${k})}(${cFmt}) = 0$$`);
+    return;
+  }
+
+  if (k === 0) {
+    let value = aCoeffs[0];
+    for (let index = 1; index <= n; index++) {
+      value = value * c + aCoeffs[index];
+    }
+    logger.section("KẾT QUẢ");
+    logger.result(`$$P_n^{(0)}(${cFmt}) = P_n(${cFmt}) = ${fmtNum(value)}$$`);
     return;
   }
 
@@ -58,18 +65,18 @@ export function runPolyDerivativeHorner(
     b[j] = aCoeffs[n - j];
   }
 
-  logger.section("2. QUÁ TRÌNH LẶP SƠ ĐỒ HORNER TÍNH ĐẠO HÀM");
-
-  // Lưu lịch sử từng tầng để vẽ bảng tổng hợp
-  const history: { m: number; row: number[] }[] = [];
-  history.push({ m: 0, row: [...b] });
+  logger.section("LẶP SƠ ĐỒ HORNER");
+  logger.info(`Dãy khởi tạo: $$[b_0, \\ldots, b_n] = [${b.map((value) => fmtNum(value)).join(", ")}]$$`);
+  logger.formula(
+    `$$b_j \\leftarrow b_{j+1} \\cdot c + b_j \\quad (m=1,\\ldots,${k}; \\ j=n-1,\\ldots,m-1)$$`,
+  );
 
   // Thuật toán:
   // Lặp m = 1 .. k
   //   Lặp j = n - 1 lùi về m - 1:
   //     b_j = b_{j+1} * c + b_j
   for (let m = 1; m <= k; m++) {
-    logger.step(`Tầng lặp Horner $m = ${m}$ (tương ứng đạo hàm cấp ${m})`);
+    logger.step(`Tầng $m = ${m}$`);
     const tableStep: Record<string, unknown>[] = [];
 
     for (let j = n - 1; j >= m - 1; j--) {
@@ -79,53 +86,24 @@ export function runPolyDerivativeHorner(
       b[j] = prod + prevVal;
 
       tableStep.push({
-        "Vị trí $j$": `$j = ${j}$`,
-        "$b_{j+1} \\cdot c$": `$(${fmtNum(upperVal)}) \\cdot (${cFmt}) = ${fmtNum(prod)}$`,
-        "$b_j$ (cũ)": `$${fmtNum(prevVal)}$`,
-        "$b_j$ (mới)": `$${fmtNum(prod)} + (${fmtNum(prevVal)}) = ${fmtNum(b[j])}$`,
+        "Hệ số": `$b_${j}$`,
+        "Tính": `$b_${j} = (${fmtNum(upperVal)}) \\cdot (${cFmt}) + (${fmtNum(prevVal)}) = ${fmtNum(b[j])}$`,
       });
     }
 
     logger.table(tableStep);
-    history.push({ m, row: [...b] });
   }
-
-  // Bảng tổng hợp các tầng Horner
-  logger.section("BẢNG TỔNG HỢP CÁC TẦNG HORNER (KHAI TRIỂN TAYLOR)");
-  const summaryTable: Record<string, unknown>[] = [];
-  for (const item of history) {
-    const rowObj: Record<string, unknown> = {
-      "Tầng $m$": item.m === 0 ? "Gốc ($m=0$)" : `$m = ${item.m}$`,
-    };
-    for (let j = n; j >= 0; j--) {
-      const isTarget = item.m > 0 && j === item.m - 1;
-      const valStr = fmtNum(item.row[j]);
-      rowObj[`$b_{${j}}$ ($x^{${j}}$)`] = isTarget ? `**${valStr}**` : valStr;
-    }
-    summaryTable.push(rowObj);
-  }
-  logger.table(summaryTable);
   logger.separator();
 
-  // 3. Tính giá trị đạo hàm cuối cùng
-  logger.section("3. KẾT QUẢ ĐẠO HÀM");
+  logger.section("KẾT QUẢ");
 
   const kFact = factorial(k);
   let derivValue = 0;
 
-  if (k === 0) {
-    derivValue = b[0];
-    logger.formula(`$$P_n^{(0)}(${cFmt}) = P_n(${cFmt}) = b_0 = ${fmtNum(derivValue)}$$`);
-  } else {
-    const bTarget = b[k - 1];
-    derivValue = kFact * bTarget;
-    logger.formula(`$$k! = ${k}! = ${kFact}$$`);
-    logger.formula(`$$b_{k-1} = b_{${k - 1}} = ${fmtNum(bTarget)}$$`);
-    logger.formula(
-      `$$P_n^{(${k})}(${cFmt}) = k! \\cdot b_{k-1} = ${kFact} \\cdot (${fmtNum(bTarget)}) = ${fmtNum(derivValue)}$$`,
-    );
-  }
-
-  logger.success(`✔ Tính toán thành công đạo hàm cấp ${k} tại $x = ${cFmt}$.`);
+  const bTarget = b[k - 1];
+  derivValue = kFact * bTarget;
+  logger.formula(
+    `$$P_n^{(${k})}(${cFmt}) = ${k}! \\cdot b_{${k - 1}} = ${kFact} \\cdot (${fmtNum(bTarget)}) = ${fmtNum(derivValue)}$$`,
+  );
   logger.result(`$$P_n^{(${k})}(${cFmt}) = ${fmtNum(derivValue)}$$`);
 }
