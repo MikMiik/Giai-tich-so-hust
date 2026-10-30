@@ -99,6 +99,8 @@ function FormFields({
       return <NewtonForwardInterpolationFields onKeyDown={onKeyDown} />;
     case "newton-backward-interpolation":
       return <NewtonBackwardInterpolationFields onKeyDown={onKeyDown} />;
+    case "newton-uniform-forward":
+      return <NewtonUniformForwardFields onKeyDown={onKeyDown} />;
     case "gauss":
       return <MatrixFields />;
     case "gaussjordan":
@@ -567,6 +569,146 @@ function NewtonBackwardInterpolationFields({ onKeyDown }: FieldProps) {
     </>
   );
 }
+
+const NEWTON_UNIFORM_DEFAULTS = {
+  algo1: {
+    xList: "1.0 1.2 1.4 1.6 1.8",
+    yList: "1.00 1.28 1.76 2.48 3.48",
+    xVal: "1.1",
+  },
+  algo2: {
+    xList: "0.00 0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00",
+    yList: "0.0 1.0 2.0 4.0 7.0 11.0 16.0 22.0 29.0",
+    xVal: "1.1",
+  },
+} as const;
+
+function NewtonUniformForwardFields({ onKeyDown }: FieldProps) {
+  const [mode, setMode] = useState<"algo1" | "algo2">("algo1");
+  const isAlgo2 = mode === "algo2";
+
+  const xListRef = useRef<HTMLInputElement>(null);
+  const yListRef = useRef<HTMLInputElement>(null);
+  const xValRef = useRef<HTMLInputElement>(null);
+
+  // Default data for each mode
+  // Auto-populate correct example data when mode changes
+  useEffect(() => {
+    const d = NEWTON_UNIFORM_DEFAULTS[mode];
+    if (xListRef.current) xListRef.current.value = d.xList;
+    if (yListRef.current) yListRef.current.value = d.yList;
+    if (xValRef.current) xValRef.current.value = d.xVal;
+  }, [mode]);
+
+  return (
+    <>
+      {/* Hidden field carries mode into form params */}
+      <input type="hidden" name="mode" value={mode} />
+
+      {/* Tab switcher */}
+      <div className="form-tab-group">
+        <button
+          type="button"
+          className={`form-tab ${!isAlgo2 ? "form-tab--active" : ""}`}
+          onClick={() => setMode("algo1")}
+        >
+          Thuật toán 1 — Toàn bộ bảng
+        </button>
+        <button
+          type="button"
+          className={`form-tab ${isAlgo2 ? "form-tab--active" : ""}`}
+          onClick={() => setMode("algo2")}
+        >
+          Thuật toán 2 — Tự động chọn mốc
+        </button>
+      </div>
+
+      {/* Description */}
+      <div className="form-tab-desc">
+        {!isAlgo2 ? (
+          <span>Nhập toàn bộ bảng $X, Y$ (mốc cách đều). Thuật toán sẽ lập bảng sai phân tiến và xây dựng $P_n(t)$.</span>
+        ) : (
+          <span>Nhập bảng lớn $X, Y$ và điểm $x^*$ cần tính. Thuật toán tự động chọn $n$ mốc tối ưu xung quanh $x^*$ (đoạn nội suy $\approx 1$).</span>
+        )}
+      </div>
+
+      {/* Common: xList, yList */}
+      <div className="form-section-title">Bảng dữ liệu mốc nội suy (cách đều)</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xList">
+          Dãy mốc <code>X = [x₀, x₁, ..., xₙ]</code> (cách đều)
+        </label>
+        <input
+          ref={xListRef}
+          className="form-input"
+          id="in-xList"
+          name="xList"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          {!isAlgo2 ? (
+            <>Ví dụ: <code>1.0 1.2 1.4 1.6 1.8</code> (bước lưới $h = 0.2$)</>
+          ) : (
+            <>Ví dụ: <code>0.00 0.25 0.50 … 2.00</code> (bước lưới $h = 0.25$, ít nhất 5 mốc)</>
+          )}
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-yList">
+          Dãy giá trị <code>Y = [y₀, y₁, ..., yₙ]</code>
+        </label>
+        <input
+          ref={yListRef}
+          className="form-input"
+          id="in-yList"
+          name="yList"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          {!isAlgo2 ? (
+            <>Ví dụ: <code>1.00 1.28 1.76 2.48 3.48</code></>
+          ) : (
+            <>Ví dụ: <code>0.0 1.0 2.0 4.0 7.0 11.0 16.0 22.0 29.0</code></>
+          )}
+        </div>
+      </div>
+
+      {/* x* — optional for Algo 1, required for Algo 2 */}
+      <div className="form-section-title">
+        Điểm cần tính{!isAlgo2 && " (Tùy chọn)"}
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xVal">
+          Tính giá trị <code>P_n(x*)</code> tại <code>x*</code>
+          {isAlgo2 && <span className="form-required"> *</span>}
+        </label>
+        <input
+          ref={xValRef}
+          className="form-input"
+          id="in-xVal"
+          name="xVal"
+          type="text"
+          spellCheck={false}
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          {!isAlgo2 ? (
+            <>Ví dụ: <code>1.1</code> (để trống nếu chỉ muốn tìm đa thức)</>
+          ) : (
+            <>Bắt buộc. Ví dụ: <code>1.1</code> — thuật toán sẽ tự chọn mốc tối ưu xung quanh điểm này.</>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 
 function BisectionFields({ onKeyDown }: FieldProps) {
   return (

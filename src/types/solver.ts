@@ -30,6 +30,7 @@ export type AlgorithmKey =
   | "lagrange-interpolation"
   | "newton-forward-interpolation"
   | "newton-backward-interpolation"
+  | "newton-uniform-forward"
   | "gauss"
   | "gaussjordan"
   | "gauss-seidel"
@@ -90,6 +91,7 @@ export const PPS_POLYNOMIAL_METHODS = [
   "lagrange-interpolation",
   "newton-forward-interpolation",
   "newton-backward-interpolation",
+  "newton-uniform-forward",
 ] as const;
 
 export const INTERPOLATION_METHODS = PPS_POLYNOMIAL_METHODS;

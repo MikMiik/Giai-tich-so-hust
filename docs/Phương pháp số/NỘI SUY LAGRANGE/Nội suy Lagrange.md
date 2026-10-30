@@ -1,4 +1,4 @@
-- **Input:** $n \in \mathbb{N}$; hai mảng $X = [x_0, x_1, \dots, x_n]$, $Y = [y_0, y_1, \dots, y_n]$ với các $x_i$ đôi một khác nhau.
+- **Input:** $n \in \mathbb{N}$; mảng $X = [x_0, x_1, \dots, x_n]$, $Y = [y_0, y_1, \dots, y_n]$ ($x_i$ đôi một khác nhau).
 - **Steps:**
     1. **Tính hệ số $w_{n+1}(x) = [w_{n+1}, \dots, w_0]$:**
         - Đặt $w_0 = 1$.
@@ -19,9 +19,7 @@
                 - Đặt $c = w_{n+1}$.
                 - Đặt $P_n = P_n + T \cdot c$.
                 - Lặp $j = n - 1, n - 2, \dots, 0$:
-                    $$c = c \cdot x_i + w_{j+1}$$
-                    $$P_j = P_j + T \cdot c$$
-                    
+                    $$c = c \cdot x_i + w_{j+1}$$$$P_j = P_j + T \cdot c$$
 - **Output:** Mảng hệ số $P = [P_n, P_{n-1}, \dots, P_0]$ của đa thức $P_n(x) = \sum_{j=0}^n P_j x^j$.
 
 VD:

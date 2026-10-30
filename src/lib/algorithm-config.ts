@@ -11,6 +11,7 @@ import { runPolyProductLinear } from "@/lib/algorithms/poly-product-linear";
 import { runLagrangeInterpolation } from "@/lib/algorithms/lagrange-interpolation";
 import { runNewtonForwardInterpolation } from "@/lib/algorithms/newton-forward-interpolation";
 import { runNewtonBackwardInterpolation } from "@/lib/algorithms/newton-backward-interpolation";
+import { runNewtonUniformForward } from "@/lib/algorithms/newton-uniform-forward";
 import { runGauss } from "@/lib/algorithms/gauss";
 import { runGaussJordan } from "@/lib/algorithms/gaussjordan";
 import { runNewtonSystem } from "@/lib/algorithms/newton-system";
@@ -176,6 +177,18 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
       xVal: "",
     },
     run: runNewtonBackwardInterpolation,
+  },
+  "newton-uniform-forward": {
+    title: "Nội Suy Newton Tiến (Cách Đều)",
+    subtitle: "Bảng sai phân tiến Δᵏy, biến chuẩn hóa t = (x−x₀)/h — Newton Forward Uniform",
+    icon: "Δ↑",
+    defaultValues: {
+      mode: "algo1",
+      xList: "1.0 1.2 1.4 1.6 1.8",
+      yList: "1.00 1.28 1.76 2.48 3.48",
+      xVal: "1.1",
+    },
+    run: runNewtonUniformForward,
   },
   gauss: {
     title: "Phương Pháp Gauss",
@@ -441,6 +454,7 @@ export const PPS_SIDEBAR_SECTIONS = [
       "lagrange-interpolation",
       "newton-forward-interpolation",
       "newton-backward-interpolation",
+      "newton-uniform-forward",
     ] as AlgorithmKey[],
   },
 ] as const;
