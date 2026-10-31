@@ -33,6 +33,14 @@ export type AlgorithmKey =
   | "newton-uniform-forward"
   | "gauss-forward-interpolation"
   | "gauss-backward-interpolation"
+  | "stirling-interpolation"
+  | "bessel-interpolation"
+  | "least-squares"
+  | "smoothing-spline"
+  | "inverse-isolation"
+  | "monotone-intervals"
+  | "inverse-newton-forward"
+  | "inverse-newton-iteration"
   | "gauss"
   | "gaussjordan"
   | "gauss-seidel"
@@ -96,6 +104,14 @@ export const PPS_POLYNOMIAL_METHODS = [
   "newton-uniform-forward",
   "gauss-forward-interpolation",
   "gauss-backward-interpolation",
+  "stirling-interpolation",
+  "bessel-interpolation",
+  "least-squares",
+  "smoothing-spline",
+  "inverse-isolation",
+  "monotone-intervals",
+  "inverse-newton-forward",
+  "inverse-newton-iteration",
 ] as const;
 
 export const INTERPOLATION_METHODS = PPS_POLYNOMIAL_METHODS;

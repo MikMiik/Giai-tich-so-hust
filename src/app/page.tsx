@@ -54,8 +54,8 @@ export default function RootPage() {
               <div className="card-tag">Phương Pháp Số</div>
               <h2 className="card-title">PPS</h2>
               <p className="card-desc">
-                Xác định mốc nội suy tối ưu Chebyshev trên $[a, b]$, đa thức nội
-                suy, xấp xỉ hàm, vi phân và tích phân số trị.
+                Mốc Chebyshev, nội suy (Lagrange, Newton, Gauss, Stirling,
+                Bessel), nội suy ngược, bình phương tối thiểu và hàm ghép trơn.
               </p>
             </div>
             <div className="card-action">

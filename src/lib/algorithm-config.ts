@@ -13,6 +13,16 @@ import { runNewtonForwardInterpolation } from "@/lib/algorithms/newton-forward-i
 import { runNewtonBackwardInterpolation } from "@/lib/algorithms/newton-backward-interpolation";
 import { runNewtonUniformForward } from "@/lib/algorithms/newton-uniform-forward";
 import { runGaussBackwardInterpolation, runGaussForwardInterpolation } from "@/lib/algorithms/gauss-central";
+import { runStirlingInterpolation } from "@/lib/algorithms/stirling-interpolation";
+import { runBesselInterpolation } from "@/lib/algorithms/bessel-interpolation";
+import { runLeastSquares } from "@/lib/algorithms/least-squares";
+import { runSmoothingSpline } from "@/lib/algorithms/smoothing-spline";
+import {
+  runInverseIsolation,
+  runInverseNewtonForward,
+  runInverseNewtonIteration,
+  runMonotoneIntervals,
+} from "@/lib/algorithms/inverse-interpolation";
 import { runGauss } from "@/lib/algorithms/gauss";
 import { runGaussJordan } from "@/lib/algorithms/gaussjordan";
 import { runNewtonSystem } from "@/lib/algorithms/newton-system";
@@ -216,6 +226,102 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
       xVal: "-0.4",
     },
     run: runGaussBackwardInterpolation,
+  },
+  "stirling-interpolation": {
+    title: "Nội Suy Sterling (Stirling)",
+    subtitle: "Nội suy trung tâm với số mốc lẻ — tách phần chẵn và lẻ",
+    icon: "St",
+    defaultValues: {
+      xList: "1.4 1.5 1.6 1.7 1.8",
+      yList: "2.4347052 2.5473627 2.6495552 2.7412610 2.8225627",
+      centerIndex: "2",
+      xVal: "1.63",
+    },
+    run: runStirlingInterpolation,
+  },
+  "bessel-interpolation": {
+    title: "Nội Suy Bessel",
+    subtitle: "Nội suy trung tâm với số mốc chẵn — tách phần chẵn và lẻ",
+    icon: "Be",
+    defaultValues: {
+      xList: "-1 0 1 2",
+      yList: "1 0 1 4",
+      centerLeftIndex: "1",
+      xVal: "0.4",
+    },
+    run: runBesselInterpolation,
+  },
+  "least-squares": {
+    title: "Bình Phương Tối Thiểu",
+    subtitle: "Lập phương trình chuẩn ΦᵀΦa = ΦᵀY để xấp xỉ dữ liệu",
+    icon: "LS",
+    defaultValues: {
+      fitType: "general",
+      xList: "0 1 2 3 4",
+      yList: "1.1 2.9 5.2 7.1 9.0",
+      basis: "1\nx",
+    },
+    run: runLeastSquares,
+  },
+  "smoothing-spline": {
+    title: "Hàm Ghép Trơn",
+    subtitle: "Dựng spline bậc p = 1…4 với điều kiện trơn tại các mốc",
+    icon: "Sp",
+    defaultValues: {
+      degree: "3",
+      xList: "0 1 2 3",
+      yList: "0 1 0 1",
+      boundary1: "0",
+      boundary2: "0",
+      boundary3: "0",
+      xVal: "1.5",
+    },
+    run: runSmoothingSpline,
+  },
+  "inverse-isolation": {
+    title: "Khoảng Cách Ly (Nội Suy Ngược)",
+    subtitle: "Tìm các khoảng (xᵢ, xᵢ₊₁) chứa nghiệm f(x) = ȳ — Isolation Intervals",
+    icon: "[]",
+    defaultValues: {
+      xList: "0 1 2 3 4 5",
+      yList: "1 3 4 2 0 1",
+      yBar: "2.5",
+    },
+    run: runInverseIsolation,
+  },
+  "monotone-intervals": {
+    title: "Khoảng Đơn Điệu",
+    subtitle: "Tách bảng dữ liệu thành các đoạn tăng hoặc giảm — Monotone Intervals",
+    icon: "↗↘",
+    defaultValues: {
+      xList: "0 1 2 3 4 5",
+      yList: "1 3 4 2 0 1",
+    },
+    run: runMonotoneIntervals,
+  },
+  "inverse-newton-forward": {
+    title: "Nội Suy Ngược (Hàm Ngược)",
+    subtitle: "Đổi vai Y↔X rồi Newton tiến, Horner tại ȳ — Inverse Function Method",
+    icon: "P⁻¹",
+    defaultValues: {
+      xList: "0 1 2",
+      yList: "1 3 4",
+      yBar: "2.5",
+    },
+    run: runInverseNewtonForward,
+  },
+  "inverse-newton-iteration": {
+    title: "Nội Suy Ngược (Lặp Newton Tiến)",
+    subtitle: "Lặp t = φ(t) từ sai phân tiến mốc cách đều — Inverse Iteration",
+    icon: "t*",
+    defaultValues: {
+      xList: "1.0 1.2 1.4 1.6 1.8",
+      yList: "1.00 1.28 1.76 2.48 3.48",
+      yBar: "2.0",
+      eps: "1e-4",
+      k: "2",
+    },
+    run: runInverseNewtonIteration,
   },
   gauss: {
     title: "Phương Pháp Gauss",
@@ -484,6 +590,18 @@ export const PPS_SIDEBAR_SECTIONS = [
       "newton-uniform-forward",
       "gauss-forward-interpolation",
       "gauss-backward-interpolation",
+      "stirling-interpolation",
+      "bessel-interpolation",
+      "least-squares",
+      "smoothing-spline",
+    ] as AlgorithmKey[],
+  },
+  {
+    methods: [
+      "inverse-isolation",
+      "monotone-intervals",
+      "inverse-newton-forward",
+      "inverse-newton-iteration",
     ] as AlgorithmKey[],
   },
 ] as const;

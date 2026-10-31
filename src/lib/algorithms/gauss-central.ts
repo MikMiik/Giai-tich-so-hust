@@ -1,19 +1,8 @@
 import type { Logger } from "@/types/solver";
 import { fmtNum, parseCoeffs, parseFraction } from "./math-utils";
+import { buildForwardDifferenceTable } from "./central-difference";
 
 type Direction = "forward" | "backward";
-
-function buildDifferenceTable(values: number[]): number[][] {
-  const count = values.length;
-  const delta = Array.from({ length: count }, () => Array(count).fill(0));
-  for (let i = 0; i < count; i++) delta[i][0] = values[i];
-  for (let order = 1; order < count; order++) {
-    for (let row = 0; row < count - order; row++) {
-      delta[row][order] = delta[row + 1][order - 1] - delta[row][order - 1];
-    }
-  }
-  return delta;
-}
 
 function factorLabel(shift: number): string {
   if (shift === 0) return "t";
@@ -63,7 +52,7 @@ export function runGaussCentral(
   logger.section("ĐẦU VÀO");
   logger.formula(`$$x_0 = ${fmtNum(X[center])}, \\quad h = ${fmtNum(h)}, \\quad t = \\frac{x^*-x_0}{h} = ${fmtNum(t)}$$`);
 
-  const delta = buildDifferenceTable(Y);
+  const delta = buildForwardDifferenceTable(Y);
   logger.section("BẢNG SAI PHÂN HỮU HẠN");
   const table: Record<string, unknown>[] = X.map((x, row) => {
     const item: Record<string, unknown> = {

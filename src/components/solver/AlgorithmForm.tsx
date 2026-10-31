@@ -104,6 +104,18 @@ function FormFields({
     case "gauss-forward-interpolation":
     case "gauss-backward-interpolation":
       return <GaussCentralFields method={method} onKeyDown={onKeyDown} />;
+    case "stirling-interpolation":
+    case "bessel-interpolation":
+      return <CentralEvenFields method={method} onKeyDown={onKeyDown} />;
+    case "least-squares":
+      return <LeastSquaresFields onKeyDown={onKeyDown} />;
+    case "smoothing-spline":
+      return <SmoothingSplineFields onKeyDown={onKeyDown} />;
+    case "inverse-isolation":
+    case "monotone-intervals":
+    case "inverse-newton-forward":
+    case "inverse-newton-iteration":
+      return <InverseInterpolationFields method={method} onKeyDown={onKeyDown} />;
     case "gauss":
       return <MatrixFields />;
     case "gaussjordan":
@@ -754,6 +766,232 @@ function GaussCentralFields({
   );
 }
 
+function CentralEvenFields({
+  method,
+  onKeyDown,
+}: FieldProps & { method: "stirling-interpolation" | "bessel-interpolation" }) {
+  const isStirling = method === "stirling-interpolation";
+  const centerField = isStirling ? "centerIndex" : "centerLeftIndex";
+  const centerId = isStirling ? "in-centerIndex" : "in-centerLeftIndex";
+
+  return (
+    <>
+      <div className="matrix-help">
+        Nhập các mốc cách đều; chỉ số bắt đầu từ <code>0</code>. {isStirling
+          ? "Stirling cần số mốc lẻ và mốc trung tâm là phần tử chính giữa."
+          : "Bessel cần số mốc chẵn và chỉ số là mốc trái của cặp trung tâm."}
+      </div>
+      <div className="form-section-title">Bảng dữ liệu</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xList">Dãy mốc X (cách đều)</label>
+        <input className="form-input" id="in-xList" name="xList" type="text" spellCheck={false} onKeyDown={onKeyDown} />
+        <div className="form-hint">Ví dụ: <code>{isStirling ? "1.4 1.5 1.6 1.7 1.8" : "-1 0 1 2"}</code></div>
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-yList">Dãy giá trị Y</label>
+        <input className="form-input" id="in-yList" name="yList" type="text" spellCheck={false} onKeyDown={onKeyDown} />
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor={centerId}>
+          {isStirling ? "Chỉ số mốc trung tâm" : "Chỉ số mốc trái của cặp trung tâm"}
+        </label>
+        <input className="form-input" id={centerId} name={centerField} type="number" min="0" step="1" onKeyDown={onKeyDown} />
+      </div>
+      <div className="form-section-title">Điểm nội suy</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xVal">Điểm x*</label>
+        <input className="form-input" id="in-xVal" name="xVal" type="text" spellCheck={false} onKeyDown={onKeyDown} />
+        <div className="form-hint">Nên chọn gần tâm nội suy để đạt độ chính xác tốt.</div>
+      </div>
+    </>
+  );
+}
+
+function LeastSquaresFields({ onKeyDown }: FieldProps) {
+  return (
+    <>
+      <div className="matrix-help">Nhập các điểm thực nghiệm và hệ hàm cơ sở theo cú pháp mathjs: <code>x</code>, <code>x^2</code>, <code>sin(x)</code>, <code>exp(x)</code>. Mỗi hàm trên một dòng.</div>
+      <div className="form-section-title">Mô hình xấp xỉ</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-fitType">Dạng hàm</label>
+        <select className="form-input" id="in-fitType" name="fitType">
+          <option value="general">Tuyến tính theo hệ hàm cơ sở</option>
+          <option value="exponential">Mũ: a·exp(b₁φ₁(x) + b₂φ₂(x))</option>
+          <option value="power">Lũy thừa: a·xᵇ</option>
+        </select>
+      </div>
+      <div className="form-section-title">Dữ liệu và cơ sở</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xList">Dãy X</label>
+        <input className="form-input" id="in-xList" name="xList" type="text" spellCheck={false} onKeyDown={onKeyDown} />
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-yList">Dãy Y</label>
+        <input className="form-input" id="in-yList" name="yList" type="text" spellCheck={false} onKeyDown={onKeyDown} />
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-basis">Hàm cơ sở φⱼ(x)</label>
+        <textarea className="form-textarea" id="in-basis" name="basis" rows={3} spellCheck={false} />
+        <div className="form-hint">Dạng tổng quát: mọi φⱼ. Dạng mũ: đúng 2 hàm φ₁, φ₂. Dạng lũy thừa bỏ qua ô này.</div>
+      </div>
+    </>
+  );
+}
+
+function SmoothingSplineFields({ onKeyDown }: FieldProps) {
+  return (
+    <>
+      <div className="matrix-help">Spline dùng điều kiện biên tại mốc trái. Với bậc p, chỉ dùng các đạo hàm từ cấp 1 đến p − 1.</div>
+      <div className="form-section-title">Dữ liệu spline</div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-splineDegree">Bậc p</label>
+          <select className="form-input" id="in-splineDegree" name="degree">
+            <option value="1">1 — tuyến tính</option><option value="2">2 — bậc hai</option><option value="3">3 — bậc ba</option><option value="4">4 — bậc bốn</option>
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-splineXVal">Điểm x* (tùy chọn)</label>
+          <input className="form-input" id="in-splineXVal" name="xVal" type="text" spellCheck={false} onKeyDown={onKeyDown} />
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-splineXList">Dãy X tăng nghiêm ngặt</label>
+        <input className="form-input" id="in-splineXList" name="xList" type="text" spellCheck={false} onKeyDown={onKeyDown} />
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-splineYList">Dãy Y</label>
+        <input className="form-input" id="in-splineYList" name="yList" type="text" spellCheck={false} onKeyDown={onKeyDown} />
+      </div>
+      <div className="form-section-title">Điều kiện biên tại x₁</div>
+      <div className="form-row">
+        <div className="form-group"><label className="form-label" htmlFor="in-boundary1">S′(x₁)</label><input className="form-input" id="in-boundary1" name="boundary1" type="text" onKeyDown={onKeyDown} /></div>
+        <div className="form-group"><label className="form-label" htmlFor="in-boundary2">S″(x₁)</label><input className="form-input" id="in-boundary2" name="boundary2" type="text" onKeyDown={onKeyDown} /></div>
+        <div className="form-group"><label className="form-label" htmlFor="in-boundary3">S‴(x₁)</label><input className="form-input" id="in-boundary3" name="boundary3" type="text" onKeyDown={onKeyDown} /></div>
+      </div>
+    </>
+  );
+}
+
+function InverseInterpolationFields({
+  method,
+  onKeyDown,
+}: FieldProps & {
+  method:
+    | "inverse-isolation"
+    | "monotone-intervals"
+    | "inverse-newton-forward"
+    | "inverse-newton-iteration";
+}) {
+  const needsYBar = method !== "monotone-intervals";
+  const isIteration = method === "inverse-newton-iteration";
+  const isInversePoly = method === "inverse-newton-forward";
+  const hintX =
+    method === "inverse-newton-forward"
+      ? "0 1 2"
+      : isIteration
+        ? "1.0 1.2 1.4 1.6 1.8"
+        : "0 1 2 3 4 5";
+  const hintY =
+    method === "inverse-newton-forward"
+      ? "1 3 4"
+      : isIteration
+        ? "1.00 1.28 1.76 2.48 3.48"
+        : "1 3 4 2 0 1";
+
+  return (
+    <>
+      <div className="form-section-title">Bảng dữ liệu</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-invXList">
+          Dãy mốc <code>X = [x₀, x₁, ..., xₙ]</code>
+        </label>
+        <input
+          className="form-input"
+          id="in-invXList"
+          name="xList"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>{hintX}</code>
+          {isIteration ? " (cách đều)" : " (tăng nghiêm ngặt)"}
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-invYList">
+          Dãy giá trị <code>Y = [y₀, y₁, ..., yₙ]</code>
+        </label>
+        <input
+          className="form-input"
+          id="in-invYList"
+          name="yList"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>{hintY}</code>
+          {isInversePoly ? " (đơn điệu, đôi một khác nhau)" : ""}
+        </div>
+      </div>
+      {needsYBar && (
+        <>
+          <div className="form-section-title">Giá trị cần tìm nghiệm</div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="in-yBar">
+              <code>ȳ</code> sao cho <code>f(x) = ȳ</code>
+            </label>
+            <input
+              className="form-input"
+              id="in-yBar"
+              name="yBar"
+              type="text"
+              spellCheck={false}
+              onKeyDown={onKeyDown}
+            />
+            <div className="form-hint">Ví dụ: <code>{isIteration ? "2.0" : "2.5"}</code></div>
+          </div>
+        </>
+      )}
+      {isIteration && (
+        <>
+          <div className="form-section-title">Tham số lặp</div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label" htmlFor="in-invEps">
+                Sai số <code>ε</code>
+              </label>
+              <input
+                className="form-input"
+                id="in-invEps"
+                name="eps"
+                type="text"
+                onKeyDown={onKeyDown}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="in-invK">
+                Chỉ số <code>k</code> của khoảng <code>[xₖ, xₖ₊₁]</code>
+              </label>
+              <input
+                className="form-input"
+                id="in-invK"
+                name="k"
+                type="text"
+                onKeyDown={onKeyDown}
+              />
+              <div className="form-hint">Để trống nếu chỉ có một khoảng cách ly.</div>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
 
 function BisectionFields({ onKeyDown }: FieldProps) {
   return (
