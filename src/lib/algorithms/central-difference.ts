@@ -35,13 +35,19 @@ export function parseCentralInput(
   const X = parseCoeffs(params.xList);
   const Y = parseCoeffs(params.yList);
   const xStar = parseFraction(params.xVal);
-  const center = Number.parseInt(params[centerField], 10);
+  let center = Number.parseInt(params[centerField], 10);
+  if (!Number.isInteger(center)) {
+    // Mặc định tự động tính tâm:
+    // Stirling: phần tử chính giữa mảng lẻ
+    // Bessel: mốc trái của cặp giữa mảng chẵn
+    center = centerField === "centerLeftIndex" ? Math.floor(X.length / 2) - 1 : Math.floor(X.length / 2);
+  }
 
   if (X.length < 3 || X.length !== Y.length) {
     logger.error("Cần ít nhất 3 mốc và hai dãy X, Y phải có cùng số phần tử.");
     return null;
   }
-  if (!Number.isFinite(xStar) || !Number.isInteger(center) || center < 0 || center >= X.length) {
+  if (!Number.isFinite(xStar) || center < 0 || center >= X.length) {
     logger.error("Điểm x* hoặc chỉ số mốc trung tâm không hợp lệ.");
     return null;
   }

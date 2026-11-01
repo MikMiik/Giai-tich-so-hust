@@ -1,5 +1,6 @@
 import type { Logger } from "@/types/solver";
 import { getPrecisionByEpsilon, parseFraction, fmtNum } from "./math-utils";
+import { compileExpression } from "./expression-evaluator";
 
 export function runBisection(
   params: Record<string, string>,
@@ -7,30 +8,29 @@ export function runBisection(
 ): void {
   const { fStr, a: aIn, b: bIn, epsilon } = params;
 
-  let f: (x: number) => number;
   try {
-    f = new Function("x", `"use strict"; return (${fStr});`) as (
-      x: number,
-    ) => number;
+    const f = compileExpression(fStr);
     f(0);
+    return runWithFunction(f);
   } catch (e) {
     logger.error("Lỗi cú pháp hàm f(x): " + (e as Error).message);
     return;
   }
-
-  const a_num = parseFraction(aIn);
-  const b_num = parseFraction(bIn);
-  const hasEpsilon = epsilon !== undefined && epsilon.trim() !== "";
-  let eps = 0;
-  if (hasEpsilon) {
-    eps = parseFraction(epsilon);
-    if (isNaN(eps) || eps <= 0) {
-      logger.error("Epsilon phải là số dương.");
-      return;
+  function runWithFunction(f: (x: number) => number): void {
+    const a_num = parseFraction(aIn);
+    const b_num = parseFraction(bIn);
+    const hasEpsilon = epsilon !== undefined && epsilon.trim() !== "";
+    let eps = 0;
+    if (hasEpsilon) {
+      eps = parseFraction(epsilon);
+      if (isNaN(eps) || eps <= 0) {
+        logger.error("Epsilon phải là số dương.");
+        return;
+      }
     }
-  }
 
-  bisectionMethod(f, a_num, b_num, eps, 200, logger, hasEpsilon);
+    bisectionMethod(f, a_num, b_num, eps, 200, logger, hasEpsilon);
+  }
 }
 
 function roundBySignificantDigits(value: number, significantDigits: number) {

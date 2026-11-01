@@ -1,26 +1,26 @@
 import type { Logger } from "@/types/solver";
 import { parseFraction, getPrecisionByEpsilon, fmtNum } from "./math-utils";
+import { compileExpression } from "./expression-evaluator";
 export function runDayCung(params: Record<string, string>, logger: Logger): void {
   const { fStr, a: aIn, b: bIn, epsilon } = params;
-  let f: (x: number) => number;
   try {
-    f = new Function("x", `"use strict"; return (${fStr});`) as (x: number) => number;
+    const f = compileExpression(fStr);
     f(0);
+    const a = parseFraction(aIn), b = parseFraction(bIn);
+    if ([a, b].some(isNaN)) { logger.error("Tham số khoảng [a, b] không hợp lệ."); return; }
+
+    const hasEpsilon = epsilon !== undefined && epsilon.trim() !== "";
+    let eps = 0;
+    if (hasEpsilon) {
+      eps = parseFraction(epsilon);
+      if (isNaN(eps) || eps <= 0) { logger.error("Epsilon phải là số dương."); return; }
+    }
+
+    solveDayCung(f, a, b, eps, 100, logger);
   } catch (e) {
     logger.error("Lỗi cú pháp hàm f(x): " + (e as Error).message);
     return;
   }
-  const a = parseFraction(aIn), b = parseFraction(bIn);
-  if ([a, b].some(isNaN)) { logger.error("Tham số khoảng [a, b] không hợp lệ."); return; }
-  
-  const hasEpsilon = epsilon !== undefined && epsilon.trim() !== "";
-  let eps = 0;
-  if (hasEpsilon) {
-    eps = parseFraction(epsilon);
-    if (isNaN(eps) || eps <= 0) { logger.error("Epsilon phải là số dương."); return; }
-  }
-
-  solveDayCung(f, a, b, eps, 100, logger);
 }
 
 function nd1(f: (x: number) => number, x: number, h = 1e-7) { return (f(x+h)-f(x-h))/(2*h); }

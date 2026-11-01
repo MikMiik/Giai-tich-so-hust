@@ -1,5 +1,6 @@
 import type { Logger } from "@/types/solver";
 import { getPrecisionByEpsilon, parseFraction, fmtNum } from "./math-utils";
+import { compileExpression } from "./expression-evaluator";
 export function runTiepTuyen(
   params: Record<string, string>,
   logger: Logger,
@@ -10,18 +11,9 @@ export function runTiepTuyen(
     df: (x: number) => number,
     ddf: (x: number) => number;
   try {
-    const parsedF = normalizeMathExpr(fStr);
-    const parsedDf = normalizeMathExpr(dfStr);
-    const parsedDdf = normalizeMathExpr(ddfStr);
-    f = new Function("x", `"use strict"; return (${parsedF});`) as (
-      x: number,
-    ) => number;
-    df = new Function("x", `"use strict"; return (${parsedDf});`) as (
-      x: number,
-    ) => number;
-    ddf = new Function("x", `"use strict"; return (${parsedDdf});`) as (
-      x: number,
-    ) => number;
+    f = compileExpression(fStr);
+    df = compileExpression(dfStr);
+    ddf = compileExpression(ddfStr);
     f(1);
     df(1);
     ddf(1);
@@ -55,15 +47,6 @@ export function runTiepTuyen(
 
   newtonMethod(f, df, ddf, a, b, m1, eps, 100, logger);
 }
-
-function normalizeMathExpr(expr: string): string {
-  return expr
-    .replace(/(\d|\))\s*x\b/g, "$1*x")
-    .replace(/(\d|x|\))\s*(?=\()/g, "$1*")
-    .replace(/(\))\s*(?=\d)/g, "$1*");
-}
-
-
 
 function roundBySignificantDigits(value: number, significantDigits: number) {
   if (!Number.isFinite(value)) return value;
