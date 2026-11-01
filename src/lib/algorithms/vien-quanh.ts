@@ -177,7 +177,7 @@ export function runVienQuanh(params: Record<string, string>, logger: Logger): vo
   let Ainv = borderingInverse(A, matrixDecimals, generalDecimals, logger, "A");
 
   if (Ainv === null) {
-    logger.section("XỬ LÝ NGOẠI LỆ ($A^TA$)");
+    logger.section("XỬ LÝ NGOẠI LỆ (A^T A)");
     logger.warn("Thuật toán trực tiếp thất bại. Chuyển sang tìm ma trận nghịch đảo thông qua $M = A^TA$.");
     
     const At = transpose(A);

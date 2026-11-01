@@ -37,7 +37,7 @@ export function runStirlingInterpolation(
 
   // ── 2. Bảng sai phân hữu hạn ────────────────────────────
   const delta = buildForwardDifferenceTable(Y);
-  logger.section("BẢNG SAI PHÂN HỮU HẠN $\\Delta^k y$");
+  logger.section("BẢNG SAI PHÂN HỮU HẠN");
   logCentralDifferenceTable(logger, X, Y, delta, center);
 
   // ── 3. Hệ số Stirling ───────────────────────────────────

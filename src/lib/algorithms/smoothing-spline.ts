@@ -135,7 +135,7 @@ export function runSmoothingSpline(
   const h: number[] = X.slice(0, -1).map((xi, i) => X[i + 1] - xi);
 
   // ── 1. Bảng dữ liệu và bước lưới ───────────────────────
-  logger.section("1. BẢNG DỮ LIỆU VÀ BƯỚC LƯỚI");
+  logger.section("BẢNG DỮ LIỆU VÀ BƯỚC LƯỚI");
   const inputTable = X.map((xi, i) => ({
     "$k$": `$${i + 1}$`,
     "$x_k$": `$${fmtNum(xi)}$`,
@@ -147,7 +147,7 @@ export function runSmoothingSpline(
 
   // ── p = 1: Spline tuyến tính ────────────────────────────
   if (degree === 1) {
-    logger.section("2. TÍNH HỆ SỐ TRỰC TIẾP ($p = 1$: Đường gãy tuyến tính)");
+    logger.section("HỆ SỐ ĐA THỨC TUYẾN TÍNH (p = 1)");
     logger.formula(`$$S_k(x) = a_k x + b_k, \\quad a_k = \\frac{y_{k+1}-y_k}{h_k}, \\quad b_k = y_k - a_k x_k$$`);
 
     const aArr: number[] = [], bArr: number[] = [];
@@ -165,7 +165,7 @@ export function runSmoothingSpline(
     }
     logger.table(coefTable);
 
-    logger.section("3. CÁC ĐA THỨC GHÉP TRƠN ($p = 1$)");
+    logger.section("CÁC ĐA THỨC GHÉP TRƠN (p = 1)");
     for (let k = 0; k < intervals; k++) {
       logger.result(
         `$$S_{${k + 1}}(x) = ${fmtPolyLinear(aArr[k], bArr[k])} \\quad x \\in [${fmtNum(X[k])},\\,${fmtNum(X[k + 1])}]$$`,
@@ -179,7 +179,7 @@ export function runSmoothingSpline(
       }
       const k = findInterval(X, xStar);
       const val = aArr[k] * xStar + bArr[k];
-      logger.section("GIÁ TRỊ TẠI $x^*$");
+      logger.section("GIÁ TRỊ TẠI ĐIỂM NỘI SUY");
       logger.result(`$$S(${fmtNum(xStar)}) = S_{${k + 1}}(${fmtNum(xStar)}) = ${fmtNum(val)}$$`);
     }
     return;
@@ -187,7 +187,7 @@ export function runSmoothingSpline(
 
   // ── p = 2: Spline bậc 2 với đệ quy tiến ────────────────
   if (degree === 2) {
-    logger.section("2. TÍNH $m_k = S'(x_k)$ BẰNG ĐỆ QUY TIẾN ($p = 2$)");
+    logger.section("ĐỆ QUY TIẾN TÌM ĐẠO HÀM m_k (p = 2)");
     logger.formula(`$$m_1 = ${fmtNum(b1)} \\;(\\text{điều kiện biên}), \\quad m_{k+1} = \\frac{2(y_{k+1}-y_k)}{h_k} - m_k$$`);
 
     const m: number[] = [b1];
@@ -203,7 +203,7 @@ export function runSmoothingSpline(
     }
     logger.table(mTable);
 
-    logger.section("3. HỆ SỐ ĐA THỨC GHÉP TRƠN ($p = 2$)");
+    logger.section("HỆ SỐ ĐA THỨC BẬC HAI (p = 2)");
     logger.formula(`$$a_k = \\frac{m_{k+1}-m_k}{2h_k}, \\quad b_k = \\frac{m_k x_{k+1}-m_{k+1}x_k}{h_k}, \\quad c_k = \\frac{-m_k x_{k+1}^2+m_{k+1}x_k^2}{2h_k}+y_k+\\frac{m_k h_k}{2}$$`);
 
     const aArr: number[] = [], bArr: number[] = [], cArr: number[] = [];
@@ -223,7 +223,7 @@ export function runSmoothingSpline(
     }
     logger.table(coefTable);
 
-    logger.section("4. CÁC ĐA THỨC GHÉP TRƠN ($p = 2$)");
+    logger.section("CÁC ĐA THỨC GHÉP TRƠN (p = 2)");
     for (let k = 0; k < intervals; k++) {
       logger.result(
         `$$S_{${k + 1}}(x) = ${fmtPolyQuadratic(aArr[k], bArr[k], cArr[k])} \\quad x \\in [${fmtNum(X[k])},\\,${fmtNum(X[k + 1])}]$$`,
@@ -237,14 +237,14 @@ export function runSmoothingSpline(
       }
       const k = findInterval(X, xStar);
       const val = aArr[k] * xStar ** 2 + bArr[k] * xStar + cArr[k];
-      logger.section("GIÁ TRỊ TẠI $x^*$");
+      logger.section("GIÁ TRỊ TẠI ĐIỂM NỘI SUY");
       logger.result(`$$S(${fmtNum(xStar)}) = S_{${k + 1}}(${fmtNum(xStar)}) = ${fmtNum(val)}$$`);
     }
     return;
   }
 
   // ── p = 3: Spline bậc 3 với thuật toán Thomas ───────────
-  logger.section("2. LẬP HỆ BA ĐƯỜNG CHÉO ($p = 3$, tìm $\\alpha_k = S''(x_k)$)");
+  logger.section("HỆ PHƯƠNG TRÌNH BA ĐƯỜNG CHÉO (p = 3)");
   logger.formula(
     `$$\\frac{h_k}{6}\\alpha_k + \\frac{h_k+h_{k+1}}{3}\\alpha_{k+1} + \\frac{h_{k+1}}{6}\\alpha_{k+2} = \\frac{y_{k+2}-y_{k+1}}{h_{k+1}} - \\frac{y_{k+1}-y_k}{h_k}, \\quad k=1,\\ldots,n-2$$`,
   );
@@ -282,7 +282,7 @@ export function runSmoothingSpline(
   }
   logger.table(sysTable);
 
-  logger.section("3. GIẢI THUẬT TOÁN THOMAS — BẢNG $\\alpha_k$");
+  logger.section("THUẬT TOÁN THOMAS — BẢNG ĐẠO HÀM CẤP HAI");
   let alphaInner: number[];
   try {
     alphaInner = solveThomas(lowerArr, diagArr, upperArr, rhsArr);
@@ -298,7 +298,7 @@ export function runSmoothingSpline(
   }));
   logger.table(alphaTable);
 
-  logger.section("4. HỆ SỐ ĐA THỨC GHÉP TRƠN ($p = 3$)");
+  logger.section("HỆ SỐ ĐA THỨC BẬC BA (p = 3)");
   logger.formula(`$$a_k=\\frac{\\alpha_{k+1}-\\alpha_k}{6h_k},\\quad b_k=\\frac{3\\alpha_k x_{k+1}-3\\alpha_{k+1}x_k}{6h_k}$$`);
   logger.formula(`$$c_k=\\frac{-3\\alpha_k x_{k+1}^2+3\\alpha_{k+1}x_k^2}{6h_k}+\\frac{y_{k+1}-y_k}{h_k}-\\frac{(\\alpha_{k+1}-\\alpha_k)h_k}{6}$$`);
   logger.formula(`$$d_k=\\frac{\\alpha_k x_{k+1}^3-\\alpha_{k+1}x_k^3}{6h_k}+\\frac{y_k x_{k+1}-y_{k+1}x_k}{h_k}+\\frac{(\\alpha_{k+1}x_k-\\alpha_k x_{k+1})h_k}{6}$$`);
@@ -332,7 +332,7 @@ export function runSmoothingSpline(
   }
   logger.table(coefTable);
 
-  logger.section("5. CÁC ĐA THỨC GHÉP TRƠN ($p = 3$)");
+  logger.section("CÁC ĐA THỨC GHÉP TRƠN (p = 3)");
   for (let k = 0; k < intervals; k++) {
     const { a, b, c, d } = pieces[k];
     logger.result(
@@ -348,7 +348,7 @@ export function runSmoothingSpline(
     const k = findInterval(X, xStar);
     const { a, b, c, d } = pieces[k];
     const val = a * xStar ** 3 + b * xStar ** 2 + c * xStar + d;
-    logger.section("GIÁ TRỊ TẠI $x^*$");
+    logger.section("GIÁ TRỊ TẠI ĐIỂM NỘI SUY");
     logger.result(`$$S(${fmtNum(xStar)}) = S_{${k + 1}}(${fmtNum(xStar)}) = ${fmtNum(val)}$$`);
   }
 }

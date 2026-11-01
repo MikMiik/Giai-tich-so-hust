@@ -336,7 +336,7 @@ export function runInverseNewtonForward(params: Record<string, string>, logger: 
   logger.result(`$$P = [${P.map((value) => fmtNum(value)).join(", ")}]$$`);
   logger.result(`$$P_{${n}}(y) = ${fmtPoly(P, "y")}$$`);
 
-  logger.section("HORNER TẠI $\\bar{y}$");
+  logger.section("SƠ ĐỒ HORNER TÍNH NGHIỆM");
   logger.formula(`$$p\\leftarrow P_0,\\qquad p\\leftarrow p\\times\\bar{y}+P_j$$`);
   const horner: Record<string, unknown>[] = [];
   let p = P[0];
@@ -436,7 +436,7 @@ export function runInverseNewtonIteration(params: Record<string, string>, logger
 
   const maxOrder = n - k;
   const deltasFromK = Array.from({ length: maxOrder + 1 }, (_, order) => delta[k][order]);
-  logger.section("SAI PHÂN XUẤT PHÁT TỪ $x_k$");
+  logger.section("SAI PHÂN XUẤT PHÁT TỪ MỐC X_K");
   logger.table(
     deltasFromK.map((value, order) => ({
       "Cấp": order === 0 ? "$y_k$" : `$\\Delta^{${order}} y_k$`,
@@ -446,7 +446,7 @@ export function runInverseNewtonIteration(params: Record<string, string>, logger
 
   const t0 = (yBar - Y[k]) / deltasFromK[1];
   const tol = eps / Math.abs(h);
-  logger.section("LẶP TÌM $t$");
+  logger.section("QUÁ TRÌNH LẶP TÌM THAM SỐ T");
   logger.formula(`$$t_0 = \\frac{\\bar{y}-y_k}{\\Delta y_k} = ${fmtNum(t0)}$$`);
   logger.formula(
     "$$S(t)=\\sum_{m=2}^{n-k}\\frac{\\Delta^m y_k}{m!}\\prod_{r=0}^{m-1}(t-r),\\qquad t_{j+1}=\\frac{\\bar{y}-y_k-S(t_j)}{\\Delta y_k}$$",

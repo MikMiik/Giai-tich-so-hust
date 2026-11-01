@@ -23,7 +23,13 @@ export default function LogOutput({ entries }: LogOutputProps) {
   }
 
   const renderCellContent = (content: unknown) => {
-    if (typeof content === "string" && content.includes("$")) {
+    if (
+      typeof content === "string" &&
+      (content.includes("$") ||
+        content.includes("*") ||
+        content.includes("`") ||
+        content.includes("\\"))
+    ) {
       return (
         <ReactMarkdown
           remarkPlugins={[remarkMath]}
@@ -47,9 +53,21 @@ export default function LogOutput({ entries }: LogOutputProps) {
         }
 
         if (entry.type === "section") {
+          const content = entry.content as string;
           return (
             <div key={idx} className="log-section">
-              ▸ {entry.content as string}
+              <span className="log-section-bullet">▸</span>{" "}
+              {content.includes("$") ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                  components={{ p: ({ children }) => <>{children}</> }}
+                >
+                  {content}
+                </ReactMarkdown>
+              ) : (
+                content
+              )}
             </div>
           );
         }
