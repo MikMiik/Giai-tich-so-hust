@@ -17,6 +17,7 @@ import { runStirlingInterpolation } from "@/lib/algorithms/stirling-interpolatio
 import { runBesselInterpolation } from "@/lib/algorithms/bessel-interpolation";
 import { runLeastSquares } from "@/lib/algorithms/least-squares";
 import { runSmoothingSpline } from "@/lib/algorithms/smoothing-spline";
+import { runExtractEquidistantNodes } from "@/lib/algorithms/extract-equidistant-nodes";
 import {
   runInverseIsolation,
   runInverseNewtonForward,
@@ -229,31 +230,31 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   },
   "stirling-interpolation": {
     title: "Nội Suy Sterling (Stirling)",
-    subtitle: "Nội suy trung tâm với số mốc lẻ — tách phần chẵn và lẻ",
+    subtitle: "Nội suy trung tâm: tự trích xuất 2m+1 mốc tối ưu quanh x* và tách chẵn/lẻ",
     icon: "St",
     defaultValues: {
-      xList: "1.4 1.5 1.6 1.7 1.8",
-      yList: "2.4347052 2.5473627 2.6495552 2.7412610 2.8225627",
-      centerIndex: "2",
+      xList: "1.3 1.4 1.5 1.6 1.7 1.8 1.9",
+      yList: "2.3164 2.4347 2.5474 2.6496 2.7413 2.8226 2.8936",
+      nodeCount: "5",
       xVal: "1.63",
     },
     run: runStirlingInterpolation,
   },
   "bessel-interpolation": {
     title: "Nội Suy Bessel",
-    subtitle: "Nội suy trung tâm với số mốc chẵn — tách phần chẵn và lẻ",
+    subtitle: "Nội suy trung tâm: tự trích xuất 2m mốc tối ưu quanh [x₀, x₁] và tách chẵn/lẻ",
     icon: "Be",
     defaultValues: {
-      xList: "-1 0 1 2",
-      yList: "1 0 1 4",
-      centerLeftIndex: "1",
+      xList: "-2 -1 0 1 2 3",
+      yList: "4 1 0 1 4 9",
+      nodeCount: "4",
       xVal: "0.4",
     },
     run: runBesselInterpolation,
   },
   "least-squares": {
     title: "Bình Phương Tối Thiểu",
-    subtitle: "Lập phương trình chuẩn ΦᵀΦa = ΦᵀY để xấp xỉ dữ liệu",
+    subtitle: "Xấp xỉ hàm theo sai số bình phương tối thiểu: tuyến tính, mũ, lũy thừa, logarit",
     icon: "LS",
     defaultValues: {
       fitType: "general",
@@ -277,6 +278,18 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
       xVal: "1.5",
     },
     run: runSmoothingSpline,
+  },
+  "extract-equidistant-nodes": {
+    title: "Trích Xuất k Mốc Cách Đều",
+    subtitle: "Trích xuất k mốc nội suy tối ưu quanh điểm x̄ từ bảng dữ liệu lớn",
+    icon: "✂️",
+    defaultValues: {
+      xList: "0.00 0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00",
+      yList: "0.0 1.0 2.0 4.0 7.0 11.0 16.0 22.0 29.0",
+      kVal: "5",
+      xVal: "1.1",
+    },
+    run: runExtractEquidistantNodes,
   },
   "inverse-isolation": {
     title: "Khoảng Cách Ly (Nội Suy Ngược)",
@@ -594,6 +607,7 @@ export const PPS_SIDEBAR_SECTIONS = [
       "bessel-interpolation",
       "least-squares",
       "smoothing-spline",
+      "extract-equidistant-nodes",
     ] as AlgorithmKey[],
   },
   {

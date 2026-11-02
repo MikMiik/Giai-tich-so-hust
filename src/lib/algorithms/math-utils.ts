@@ -33,10 +33,13 @@ export function parseFraction(v: string): number {
   return isNaN(num) ? NaN : num;
 }
 
-export const FormattingConfig = {
-  defaultGeneralDecimals: 4,
-  defaultMatrixDecimals: 4,
-};
+import {
+  FormattingConfig,
+  DEFAULT_GENERAL_DECIMALS,
+  DEFAULT_MATRIX_DECIMALS,
+} from "@/constants";
+
+export { FormattingConfig, DEFAULT_GENERAL_DECIMALS, DEFAULT_MATRIX_DECIMALS };
 
 export function getPrecisionByEpsilon(epsilon?: number) {
   if (epsilon !== undefined && !isNaN(epsilon)) {

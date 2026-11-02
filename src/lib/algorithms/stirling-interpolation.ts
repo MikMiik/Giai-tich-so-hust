@@ -2,12 +2,12 @@ import type { Logger } from "@/types/solver";
 import { fmtNum } from "./math-utils";
 import {
   buildForwardDifferenceTable,
+  extractStirlingSubarray,
   factorial,
   logCentralDifferenceTable,
-  parseCentralInput,
 } from "./central-difference";
 
-// Định dạng hạng tử đa thức không bị "+ -3t" khi âm
+// Định dạng hạng tử đa thức chuẩn dấu
 function fmtTerm(coeff: number, varPart: string, isFirst: boolean): string {
   if (Math.abs(coeff) < 1e-14) return "";
   const sign = isFirst ? (coeff < 0 ? "-" : "") : coeff < 0 ? " - " : " + ";
@@ -18,70 +18,110 @@ export function runStirlingInterpolation(
   params: Record<string, string>,
   logger: Logger,
 ): void {
-  const input = parseCentralInput(params, logger, "centerIndex");
-  if (!input) return;
-  const { X, Y, xStar, center, h } = input;
+  const subarray = extractStirlingSubarray(params, logger);
+  if (!subarray) return;
 
-  if (X.length % 2 === 0 || center !== Math.floor(X.length / 2)) {
-    logger.error("Sterling yêu cầu số mốc lẻ và mốc trung tâm là phần tử chính giữa của bảng.");
-    return;
+  const { X_full, Y_full, X_sub, Y_sub, k, initialK, m, x0, h, xStar } = subarray;
+
+  // ── 1. Dữ liệu đầu vào toàn bộ ──────────────────────────
+  logger.section("DỮ LIỆU ĐẦU VÀO TOÀN BỘ");
+  logger.info(
+    `Tổng số mốc dữ liệu: $N_{full} = ${X_full.length}$, bước lưới $h = ${fmtNum(h)}$. ` +
+    `Điểm cần tính: $x^* = ${fmtNum(xStar)}$. Số mốc cần lấy: $N_{mốc} = ${2 * m + 1}$ ($m = ${m}$).`,
+  );
+
+  const fullTable = X_full.map((x, i) => ({
+    "Chỉ số": `$${i}$`,
+    "$x_i$": `$${fmtNum(x)}$`,
+    "$y_i$": `$${fmtNum(Y_full[i])}$`,
+    "Khoảng cách $|x^* - x_i|$": `$${fmtNum(Math.abs(xStar - x))}$`,
+  }));
+  logger.table(fullTable);
+  logger.separator();
+
+  // ── 2. Xác định mốc trung tâm và trích xuất mảng con ─────
+  logger.section("XÁC ĐỊNH MỐC TRUNG TÂM VÀ TRÍCH XUẤT MẢNG CON");
+  logger.formula(`$$k_{\\text{gần nhất}} = ${initialK} \\implies X_{full}[${initialK}] = ${fmtNum(X_full[initialK])}$$`);
+  logger.formula(
+    `$$k = \\max(m, \\; \\min(N - m, \\; k)) = \\max(${m}, \\; \\min(${X_full.length - 1 - m}, \\; ${initialK})) = ${k}$$`,
+  );
+  logger.formula(`$$\\text{Mốc trung tâm: } x_0 = X_{full}[${k}] = ${fmtNum(x0)}$$`);
+  logger.info(
+    `Trích xuất $2m + 1 = ${2 * m + 1}$ mốc đối xứng quanh $x_0$: ` +
+    `chỉ số gốc từ $k - m = ${k - m}$ đến $k + m = ${k + m}$.`,
+  );
+
+  const subTable = X_sub.map((x, i) => {
+    const centeredIndex = i - m; // -m..m
+    const originalIndex = k - m + i;
+    return {
+      "Chỉ số quy chuẩn $i$": centeredIndex === 0 ? "**$0$ (tâm)**" : `$${centeredIndex}$`,
+      "Chỉ số gốc": `$${originalIndex}$`,
+      "$x_i$": centeredIndex === 0 ? `**$${fmtNum(x)}$**` : `$${fmtNum(x)}$`,
+      "$y_i$": centeredIndex === 0 ? `**$${fmtNum(Y_sub[i])}$**` : `$${fmtNum(Y_sub[i])}$`,
+    };
+  });
+  logger.table(subTable);
+  logger.separator();
+
+  // ── 3. Đổi biến số chuẩn hóa ─────────────────────────────
+  logger.section("ĐỔI BIẾN SỐ CHUẨN HÓA");
+  const t = (xStar - x0) / h;
+  logger.formula(`$$t = \\frac{x^* - x_0}{h} = \\frac{${fmtNum(xStar)} - ${fmtNum(x0)}}{${fmtNum(h)}} = ${fmtNum(t)}$$`);
+  if (Math.abs(t) > 0.5) {
+    logger.warn("Chú ý: Stirling cho kết quả chính xác nhất khi $x^*$ nằm gần mốc trung tâm ($|t| \\le 0.5$).");
   }
+  logger.separator();
 
-  const m = Math.floor(X.length / 2);
-  const t = (xStar - X[center]) / h;
-  if (Math.abs(t) > 0.5) logger.warn("Sterling cho kết quả tốt nhất khi $x^*$ nằm gần mốc trung tâm ($|t| \\le 0.5$).");
-
-  // ── 1. Đầu vào ──────────────────────────────────────────
-  logger.section("ĐẦU VÀO");
-  logger.formula(`$$x_0=${fmtNum(X[center])}, \\quad h=${fmtNum(h)}, \\quad t=\\frac{x^*-x_0}{h}=\\frac{${fmtNum(xStar)}-${fmtNum(X[center])}}{${fmtNum(h)}}=${fmtNum(t)}$$`);
-
-  // ── 2. Bảng sai phân hữu hạn ────────────────────────────
-  const delta = buildForwardDifferenceTable(Y);
+  // ── 4. Bảng sai phân hữu hạn ────────────────────────────
   logger.section("BẢNG SAI PHÂN HỮU HẠN");
-  logCentralDifferenceTable(logger, X, Y, delta, center);
+  const delta = buildForwardDifferenceTable(Y_sub);
+  logCentralDifferenceTable(logger, X_sub, Y_sub, delta, m);
+  logger.separator();
 
-  // ── 3. Hệ số Stirling ───────────────────────────────────
+  // ── 5. Hệ số Stirling (Tách Chẵn - Lẻ) ───────────────────
   logger.section("HỆ SỐ STIRLING (Tách Chẵn - Lẻ)");
-  logger.formula("$$C_{\\text{lẻ},i}=\\frac{\\Delta^{2i-1}y_{-i+1}+\\Delta^{2i-1}y_{-i}}{2(2i-1)!}, \\quad C_{\\text{chẵn},i}=\\frac{\\Delta^{2i}y_{-i}}{(2i)!}$$");
+  logger.formula(
+    "$$C_{\\text{lẻ}}[i] = \\frac{\\Delta_{-i+1, 2i-1} + \\Delta_{-i, 2i-1}}{2 \\cdot (2i-1)!}, \\qquad C_{\\text{chẵn}}[i] = \\frac{\\Delta_{-i, 2i}}{(2i)!}$$",
+  );
 
-  const even = [Y[center]];
-  const odd: number[] = [0]; // C_odd[0] không dùng, P_odd khởi tạo = 0
+  const even = [Y_sub[m]]; // C_even[0] = y_0
+  const odd: number[] = [0]; // C_odd[0] = 0
+
   const rows: Record<string, unknown>[] = [{
     "$i$": "$0$",
-    "Sai phân được lấy": "$\\Delta^0 y_0 = y_0$",
-    "$C_{\\text{chẵn},i}$": `$${fmtNum(Y[center])}$`,
-    "$C_{\\text{lẻ},i}$": "—",
+    "Sai phân được lấy": "$\\Delta_{0, 0} = y_0$",
+    "$C_{\\text{chẵn}}[i]$": `$${fmtNum(Y_sub[m])}$`,
+    "$C_{\\text{lẻ}}[i]$": "—",
   }];
 
   for (let i = 1; i <= m; i++) {
-    const oddLeft  = delta[center - i + 1][2 * i - 1];
-    const oddRight = delta[center - i][2 * i - 1];
+    const oddLeft = delta[m - i + 1][2 * i - 1];
+    const oddRight = delta[m - i][2 * i - 1];
     const oddValue = (oddLeft + oddRight) / (2 * factorial(2 * i - 1));
-    const evenValue = delta[center - i][2 * i] / factorial(2 * i);
+    const evenValue = delta[m - i][2 * i] / factorial(2 * i);
     odd.push(oddValue);
     even.push(evenValue);
     rows.push({
       "$i$": `$${i}$`,
-      "Sai phân được lấy": `$\\Delta^{${2*i}}y_{${-i}},\\quad \\frac{\\Delta^{${2*i-1}}y_{${1-i}}+\\Delta^{${2*i-1}}y_{${-i}}}{2}$`,
-      "$C_{\\text{chẵn},i}$": `$${fmtNum(evenValue)}$`,
-      "$C_{\\text{lẻ},i}$": `$${fmtNum(oddValue)}$`,
+      "Sai phân được lấy": `$\\Delta_{${-i}, ${2 * i}}, \\quad \\frac{\\Delta_{${1 - i}, ${2 * i - 1}} + \\Delta_{${-i}, ${2 * i - 1}}}{2}$`,
+      "$C_{\\text{chẵn}}[i]$": `$${fmtNum(evenValue)}$`,
+      "$C_{\\text{lẻ}}[i]$": `$${fmtNum(oddValue)}$`,
     });
   }
   logger.table(rows);
+  logger.separator();
 
-  // ── 4. Tính tích lũy hai thành phần ─────────────────────
-  // P_even = C_even[0] + sum_{i=1..m} C_even[i]*W*t^2
-  // P_odd  = 0         + sum_{i=1..m} C_odd[i]*W*t
-  // W = 1, nếu i>1: W *= (t^2 - (i-1)^2)
+  // ── 6. Tính tích lũy hai thành phần và đạo hàm ──────────
   let evenValue = even[0];
-  let oddValue  = 0;
+  let oddValue = 0;
   let evenDerivative = 0;
-  let oddDerivative  = 0;
+  let oddDerivative = 0;
   let base = 1;
   let baseDerivative = 0;
 
   const evenTerms: string[] = [fmtNum(even[0])];
-  const oddTerms:  string[] = [];
+  const oddTerms: string[] = [];
 
   for (let i = 1; i <= m; i++) {
     if (i > 1) {
@@ -94,33 +134,32 @@ export function runStirlingInterpolation(
 
     const evenBasis = base * t * t;
     const evenBasisDerivative = baseDerivative * t * t + base * 2 * t;
-    const oddBasis  = base * t;
-    const oddBasisDerivative  = baseDerivative * t + base;
+    const oddBasis = base * t;
+    const oddBasisDerivative = baseDerivative * t + base;
 
     evenValue += even[i] * evenBasis;
-    oddValue  += odd[i]  * oddBasis;
+    oddValue += odd[i] * oddBasis;
     evenDerivative += even[i] * evenBasisDerivative;
-    oddDerivative  += odd[i]  * oddBasisDerivative;
+    oddDerivative += odd[i] * oddBasisDerivative;
 
-    // LaTeX display (không có "+ -3t" khi âm)
     const baseLabel = i === 1
       ? ""
       : Array.from({ length: i - 1 }, (_, idx) => `(t^2-${(idx + 1) ** 2})`).join("");
     const evenTerm = fmtTerm(even[i], `t^2${baseLabel}`, false);
     if (evenTerm) evenTerms.push(evenTerm);
-    const oddTerm  = fmtTerm(odd[i],  `t${baseLabel}`,   oddTerms.length === 0);
+    const oddTerm = fmtTerm(odd[i], `t${baseLabel}`, oddTerms.length === 0);
     if (oddTerm) oddTerms.push(oddTerm);
   }
 
-  // ── 5. Đa thức Stirling ──────────────────────────────────
   logger.section("ĐA THỨC STIRLING");
   logger.formula(`$$P_{\\text{chẵn}}(t) = ${evenTerms.join("")}$$`);
   logger.formula(`$$P_{\\text{lẻ}}(t) = ${oddTerms.length ? oddTerms.join("") : "0"}$$`);
   logger.formula(`$$P(t) = P_{\\text{chẵn}}(t) + P_{\\text{lẻ}}(t)$$`);
+  logger.separator();
 
-  // ── 6. Kết quả ──────────────────────────────────────────
+  // ── 7. Kết quả xấp xỉ và đạo hàm ─────────────────────────
   logger.section("KẾT QUẢ");
-  logger.result(`$$P_{\\text{chẵn}}(${fmtNum(t)})=${fmtNum(evenValue)}, \\quad P_{\\text{lẻ}}(${fmtNum(t)})=${fmtNum(oddValue)}$$`);
-  logger.result(`$$P(${fmtNum(xStar)}) = ${fmtNum(evenValue)} + ${fmtNum(oddValue)} = ${fmtNum(evenValue + oddValue)}$$`);
-  logger.result(`$$f'(${fmtNum(xStar)}) \\approx \\frac{P'(t)}{h}=${fmtNum((evenDerivative + oddDerivative) / h)}$$`);
+  logger.result(`$$P_{\\text{chẵn}}(${fmtNum(t)}) = ${fmtNum(evenValue)}, \\quad P_{\\text{lẻ}}(${fmtNum(t)}) = ${fmtNum(oddValue)}$$`);
+  logger.result(`$$f(${fmtNum(xStar)}) \\approx P(${fmtNum(xStar)}) = ${fmtNum(evenValue)} + ${fmtNum(oddValue)} = ${fmtNum(evenValue + oddValue)}$$`);
+  logger.result(`$$f'(${fmtNum(xStar)}) \\approx \\frac{1}{h}\\left(P_{\\text{chẵn}}'(t) + P_{\\text{lẻ}}'(t)\\right) = ${fmtNum((evenDerivative + oddDerivative) / h)}$$`);
 }

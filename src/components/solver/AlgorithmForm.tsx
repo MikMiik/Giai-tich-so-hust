@@ -111,6 +111,8 @@ function FormFields({
       return <LeastSquaresFields onKeyDown={onKeyDown} />;
     case "smoothing-spline":
       return <SmoothingSplineFields onKeyDown={onKeyDown} />;
+    case "extract-equidistant-nodes":
+      return <ExtractEquidistantNodesFields onKeyDown={onKeyDown} />;
     case "inverse-isolation":
     case "monotone-intervals":
     case "inverse-newton-forward":
@@ -771,69 +773,141 @@ function CentralEvenFields({
   onKeyDown,
 }: FieldProps & { method: "stirling-interpolation" | "bessel-interpolation" }) {
   const isStirling = method === "stirling-interpolation";
-  const centerField = isStirling ? "centerIndex" : "centerLeftIndex";
-  const centerId = isStirling ? "in-centerIndex" : "in-centerLeftIndex";
 
   return (
     <>
       <div className="matrix-help">
-        Nhập các mốc cách đều; chỉ số bắt đầu từ <code>0</code>. {isStirling
-          ? "Stirling cần số mốc lẻ và mốc trung tâm là phần tử chính giữa."
-          : "Bessel cần số mốc chẵn và chỉ số là mốc trái của cặp trung tâm."}
+        {isStirling
+          ? "Nội suy Stirling: Tự động tìm mốc trung tâm x₀ gần x* nhất và trích xuất 2m + 1 mốc đối xứng (số lẻ), tự động xử lý chống tràn biên."
+          : "Nội suy Bessel: Tự động tìm khoảng trung tâm [x₀, x₁] chứa x* và trích xuất 2m mốc đối xứng (số chẵn), tự động xử lý chống tràn biên."}
       </div>
-      <div className="form-section-title">Bảng dữ liệu</div>
+
+      <div className="form-section-title">Bảng dữ liệu thực nghiệm (cách đều)</div>
       <div className="form-group">
         <label className="form-label" htmlFor="in-xList">Dãy mốc X (cách đều)</label>
         <input className="form-input" id="in-xList" name="xList" type="text" spellCheck={false} onKeyDown={onKeyDown} />
-        <div className="form-hint">Ví dụ: <code>{isStirling ? "1.4 1.5 1.6 1.7 1.8" : "-1 0 1 2"}</code></div>
+        <div className="form-hint">Ví dụ: <code>{isStirling ? "1.4 1.5 1.6 1.7 1.8 1.9 2.0" : "-1 0 1 2 3 4"}</code></div>
       </div>
       <div className="form-group">
         <label className="form-label" htmlFor="in-yList">Dãy giá trị Y</label>
         <input className="form-input" id="in-yList" name="yList" type="text" spellCheck={false} onKeyDown={onKeyDown} />
       </div>
+
+      <div className="form-section-title">Cấu hình mốc trích xuất & Điểm nội suy</div>
       <div className="form-group">
-        <label className="form-label" htmlFor={centerId}>
-          {isStirling ? "Chỉ số mốc trung tâm" : "Chỉ số mốc trái của cặp trung tâm"}
+        <label className="form-label" htmlFor="in-nodeCount">
+          Số mốc cần lấy <code>N_mốc</code> ({isStirling ? "số lẻ: 2m + 1" : "số chẵn: 2m"})
         </label>
-        <input className="form-input" id={centerId} name={centerField} type="number" min="0" step="1" onKeyDown={onKeyDown} />
+        <input
+          className="form-input"
+          id="in-nodeCount"
+          name="nodeCount"
+          type="number"
+          min={isStirling ? "3" : "2"}
+          step={isStirling ? "2" : "2"}
+          placeholder={isStirling ? "Ví dụ: 5 (số lẻ: 3, 5, 7...)" : "Ví dụ: 4 (số chẵn: 2, 4, 6...)"}
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          {isStirling
+            ? "Tùy chọn. Nhập số mốc lẻ 2m + 1 (m ≥ 1). Để trống sẽ lấy mảng lẻ lớn nhất."
+            : "Tùy chọn. Nhập số mốc chẵn 2m (m ≥ 1). Để trống sẽ lấy mảng chẵn lớn nhất."}
+        </div>
       </div>
-      <div className="form-section-title">Điểm nội suy</div>
+
       <div className="form-group">
-        <label className="form-label" htmlFor="in-xVal">Điểm x*</label>
+        <label className="form-label" htmlFor="in-xVal">
+          Điểm cần tính <code>x*</code> <span className="form-required">*</span>
+        </label>
         <input className="form-input" id="in-xVal" name="xVal" type="text" spellCheck={false} onKeyDown={onKeyDown} />
-        <div className="form-hint">Nên chọn gần tâm nội suy để đạt độ chính xác tốt.</div>
+        <div className="form-hint">
+          {isStirling
+            ? "Bắt buộc. Thuật toán tự tìm mốc trung tâm x₀ gần x* nhất để trích xuất mảng con."
+            : "Bắt buộc. Thuật toán tự tìm khoảng [x₀, x₁] chứa x* để trích xuất mảng con."}
+        </div>
       </div>
     </>
   );
 }
 
 function LeastSquaresFields({ onKeyDown }: FieldProps) {
+  const [fitType, setFitType] = useState<string>("general");
+
   return (
     <>
-      <div className="matrix-help">Nhập các điểm thực nghiệm và hệ hàm cơ sở theo cú pháp mathjs: <code>x</code>, <code>x^2</code>, <code>sin(x)</code>, <code>exp(x)</code>. Mỗi hàm trên một dòng.</div>
+      <div className="matrix-help">
+        Bình phương tối thiểu: Tìm hàm xấp xỉ tốt nhất theo tổng bình phương sai số nhỏ nhất (SSD).
+        Hỗ trợ hàm tuyến tính theo hệ cơ sở và 3 dạng phi tuyến (mũ, lũy thừa, logarit).
+      </div>
       <div className="form-section-title">Mô hình xấp xỉ</div>
       <div className="form-group">
-        <label className="form-label" htmlFor="in-fitType">Dạng hàm</label>
-        <select className="form-input" id="in-fitType" name="fitType">
-          <option value="general">Tuyến tính theo hệ hàm cơ sở</option>
-          <option value="exponential">Mũ: a·exp(b₁φ₁(x) + b₂φ₂(x))</option>
-          <option value="power">Lũy thừa: a·xᵇ</option>
+        <label className="form-label" htmlFor="in-fitType">Dạng hàm xấp xỉ</label>
+        <select
+          className="form-input"
+          id="in-fitType"
+          name="fitType"
+          value={fitType}
+          onChange={(e) => setFitType(e.target.value)}
+        >
+          <option value="general">I. Tuyến tính tổng quát: g(x) = ∑ aⱼφⱼ(x)</option>
+          <option value="exponential">II.1. Hàm mũ tổng quát: y = a·exp(∑ bⱼφⱼ(x))</option>
+          <option value="power">II.2. Hàm lũy thừa: y = a·xᵇ</option>
+          <option value="logarithmic">II.3. Hàm logarit: y = ln(∑ bⱼφⱼ(x))</option>
         </select>
       </div>
-      <div className="form-section-title">Dữ liệu và cơ sở</div>
+
+      <div className="form-section-title">Dữ liệu thực nghiệm</div>
       <div className="form-group">
-        <label className="form-label" htmlFor="in-xList">Dãy X</label>
+        <label className="form-label" htmlFor="in-xList">Dãy mốc X</label>
         <input className="form-input" id="in-xList" name="xList" type="text" spellCheck={false} onKeyDown={onKeyDown} />
+        <div className="form-hint">
+          {fitType === "power" ? "Yêu cầu mọi xᵢ > 0. Ví dụ: 1 2 3 4 5" : "Ví dụ: 0 1 2 3 4"}
+        </div>
       </div>
       <div className="form-group">
-        <label className="form-label" htmlFor="in-yList">Dãy Y</label>
+        <label className="form-label" htmlFor="in-yList">Dãy giá trị Y</label>
         <input className="form-input" id="in-yList" name="yList" type="text" spellCheck={false} onKeyDown={onKeyDown} />
+        <div className="form-hint">
+          {fitType === "exponential" || fitType === "power"
+            ? "Yêu cầu yᵢ cùng dấu (cùng dương hoặc cùng âm) và khác 0."
+            : "Ví dụ: 1.1 2.9 5.2 7.1 9.0"}
+        </div>
       </div>
-      <div className="form-group">
-        <label className="form-label" htmlFor="in-basis">Hàm cơ sở φⱼ(x)</label>
-        <textarea className="form-textarea" id="in-basis" name="basis" rows={3} spellCheck={false} />
-        <div className="form-hint">Dạng tổng quát: mọi φⱼ. Dạng mũ: đúng 2 hàm φ₁, φ₂. Dạng lũy thừa bỏ qua ô này.</div>
-      </div>
+
+      {fitType !== "power" ? (
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-basis">Hệ hàm cơ sở φⱼ(x)</label>
+          <textarea
+            className="form-textarea"
+            id="in-basis"
+            name="basis"
+            rows={3}
+            spellCheck={false}
+            placeholder={
+              fitType === "exponential"
+                ? "x\nx^2"
+                : fitType === "logarithmic"
+                ? "x\n1"
+                : "1\nx"
+            }
+          />
+          <div className="form-hint">
+            {fitType === "general" && (
+              <>Cú pháp mathjs: mỗi hàm trên một dòng. Ví dụ: <code>1</code>, <code>x</code>, <code>x^2</code>, <code>sin(x)</code>.</>
+            )}
+            {fitType === "exponential" && (
+              <>Các hàm cơ sở φⱼ(x) trên số mũ: y = a·exp(∑ bⱼφⱼ(x)). Hệ số hằng số a được tự động suy ra.</>
+            )}
+            {fitType === "logarithmic" && (
+              <>Các hàm cơ sở φⱼ(x) bên trong logarit: y = ln(∑ bⱼφⱼ(x)). Ví dụ: <code>x</code> và <code>1</code>.</>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="form-hint">
+          Dạng lũy thừa <code>y = a·xᵇ</code> tự động tuyến tính hóa qua <code>ln(x)</code>, không cần nhập hàm cơ sở.
+        </div>
+      )}
     </>
   );
 }
@@ -868,6 +942,88 @@ function SmoothingSplineFields({ onKeyDown }: FieldProps) {
         <div className="form-group"><label className="form-label" htmlFor="in-boundary1">S′(x₁)</label><input className="form-input" id="in-boundary1" name="boundary1" type="text" onKeyDown={onKeyDown} /></div>
         <div className="form-group"><label className="form-label" htmlFor="in-boundary2">S″(x₁)</label><input className="form-input" id="in-boundary2" name="boundary2" type="text" onKeyDown={onKeyDown} /></div>
         <div className="form-group"><label className="form-label" htmlFor="in-boundary3">S‴(x₁)</label><input className="form-input" id="in-boundary3" name="boundary3" type="text" onKeyDown={onKeyDown} /></div>
+      </div>
+    </>
+  );
+}
+
+function ExtractEquidistantNodesFields({ onKeyDown }: FieldProps) {
+  return (
+    <>
+      <div className="matrix-help">
+        Trích xuất mảng con gồm <code>k</code> mốc cách đều tối ưu bao quanh điểm <code>x̄</code> từ bảng dữ liệu lớn.
+      </div>
+      <div className="form-section-title">Bảng dữ liệu gốc (Cách đều)</div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xList">
+          Dãy mốc <code>X = [x₀, x₁, ..., x_N]</code> (cách đều) <span className="form-required">*</span>
+        </label>
+        <input
+          className="form-input"
+          id="in-xList"
+          name="xList"
+          type="text"
+          placeholder="0.00 0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Ví dụ: <code>0.00 0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00</code> (bước lưới h = 0.25)
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-yList">
+          Dãy giá trị <code>Y = [y₀, y₁, ..., y_N]</code> (Tùy chọn)
+        </label>
+        <input
+          className="form-input"
+          id="in-yList"
+          name="yList"
+          type="text"
+          placeholder="0.0 1.0 2.0 4.0 7.0 11.0 16.0 22.0 29.0"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+        <div className="form-hint">
+          Nếu nhập dãy Y, thuật toán sẽ trích xuất đồng thời mảng con Y_sub tương ứng.
+        </div>
+      </div>
+
+      <div className="form-section-title">Tham số trích xuất</div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-kVal">
+            Số mốc cần trích <code>k</code> <span className="form-required">*</span>
+          </label>
+          <input
+            className="form-input"
+            id="in-kVal"
+            name="kVal"
+            type="number"
+            min="1"
+            placeholder="5"
+            onKeyDown={onKeyDown}
+          />
+          <div className="form-hint">Số nguyên dương k ≤ tổng số mốc bảng gốc.</div>
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-xVal">
+            Điểm cần tính <code>x̄</code> <span className="form-required">*</span>
+          </label>
+          <input
+            className="form-input"
+            id="in-xVal"
+            name="xVal"
+            type="text"
+            placeholder="1.1"
+            spellCheck={false}
+            autoComplete="off"
+            onKeyDown={onKeyDown}
+          />
+          <div className="form-hint">Điểm cần định vị mốc trung tâm.</div>
+        </div>
       </div>
     </>
   );

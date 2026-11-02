@@ -19,44 +19,209 @@ export function factorial(value: number): number {
   return result;
 }
 
-export interface CentralInput {
-  X: number[];
-  Y: number[];
-  xStar: number;
-  center: number;
+export interface StirlingSubarrayResult {
+  X_full: number[];
+  Y_full: number[];
+  X_sub: number[];
+  Y_sub: number[];
+  k: number;
+  initialK: number;
+  m: number;
+  x0: number;
   h: number;
+  xStar: number;
 }
 
-export function parseCentralInput(
+export function extractStirlingSubarray(
   params: Record<string, string>,
   logger: Logger,
-  centerField: string,
-): CentralInput | null {
-  const X = parseCoeffs(params.xList);
-  const Y = parseCoeffs(params.yList);
+): StirlingSubarrayResult | null {
+  const X_full = parseCoeffs(params.xList);
+  const Y_full = parseCoeffs(params.yList);
   const xStar = parseFraction(params.xVal);
-  let center = Number.parseInt(params[centerField], 10);
-  if (!Number.isInteger(center)) {
-    // Mặc định tự động tính tâm:
-    // Stirling: phần tử chính giữa mảng lẻ
-    // Bessel: mốc trái của cặp giữa mảng chẵn
-    center = centerField === "centerLeftIndex" ? Math.floor(X.length / 2) - 1 : Math.floor(X.length / 2);
-  }
 
-  if (X.length < 3 || X.length !== Y.length) {
+  if (X_full.length < 3 || X_full.length !== Y_full.length) {
     logger.error("Cần ít nhất 3 mốc và hai dãy X, Y phải có cùng số phần tử.");
     return null;
   }
-  if (!Number.isFinite(xStar) || center < 0 || center >= X.length) {
-    logger.error("Điểm x* hoặc chỉ số mốc trung tâm không hợp lệ.");
+  if (!Number.isFinite(xStar)) {
+    logger.error("Vui lòng nhập điểm cần tính $x^*$ hợp lệ.");
     return null;
   }
-  const h = X[1] - X[0];
-  if (Math.abs(h) < 1e-12 || X.some((x, i) => i > 0 && Math.abs((x - X[i - 1]) - h) > Math.abs(h) * 1e-8)) {
+
+  const h = X_full[1] - X_full[0];
+  if (
+    Math.abs(h) < 1e-12 ||
+    X_full.some((x, i) => i > 0 && Math.abs(x - X_full[i - 1] - h) > Math.abs(h) * 1e-8)
+  ) {
     logger.error("Các mốc X phải cách đều với bước lưới h khác 0.");
     return null;
   }
-  return { X, Y, xStar, center, h };
+
+  const N_full = X_full.length;
+  const N = N_full - 1; // Chỉ số cuối cùng 0..N
+
+  // Parse số mốc cần lấy N_mốc = 2m + 1 (số lẻ)
+  let requestedNodes = Number.parseInt(params.nodeCount || "", 10);
+  if (!Number.isInteger(requestedNodes) || requestedNodes <= 0) {
+    // Mặc định: nếu mảng lẻ lấy toàn bộ; nếu mảng chẵn lấy N_full - 1 hoặc tối thiểu 5 nếu có đủ
+    requestedNodes = N_full % 2 === 1 ? N_full : Math.max(3, N_full - 1);
+  }
+
+  if (requestedNodes % 2 === 0) {
+    logger.error(`Thuật toán Stirling yêu cầu số mốc $N_{mốc} = 2m + 1$ là số lẻ. Đã nhận: ${requestedNodes}.`);
+    return null;
+  }
+  if (requestedNodes < 3) {
+    logger.error("Cần ít nhất 3 mốc để nội suy Stirling ($m \\ge 1$).");
+    return null;
+  }
+  if (requestedNodes > N_full) {
+    logger.error(
+      `Số mốc yêu cầu $N_{mốc} = ${requestedNodes}$ vượt quá tổng số mốc dữ liệu $N_{full} = ${N_full}$.`,
+    );
+    return null;
+  }
+
+  const m = (requestedNodes - 1) / 2;
+
+  // Bước 1: Tìm chỉ số k sao cho |x* - X_full[k]| nhỏ nhất
+  let initialK = 0;
+  let minDiff = Math.abs(xStar - X_full[0]);
+  for (let i = 1; i < N_full; i++) {
+    const diff = Math.abs(xStar - X_full[i]);
+    if (diff < minDiff) {
+      minDiff = diff;
+      initialK = i;
+    }
+  }
+
+  // Xử lý biên: k = max(m, min(N - m, k))
+  const k = Math.max(m, Math.min(N - m, initialK));
+  const x0 = X_full[k];
+
+  // Trích xuất 2m + 1 mốc đối xứng quanh x0: X_full[k-m ... k+m]
+  const X_sub = X_full.slice(k - m, k + m + 1);
+  const Y_sub = Y_full.slice(k - m, k + m + 1);
+
+  return {
+    X_full,
+    Y_full,
+    X_sub,
+    Y_sub,
+    k,
+    initialK,
+    m,
+    x0,
+    h,
+    xStar,
+  };
+}
+
+export interface BesselSubarrayResult {
+  X_full: number[];
+  Y_full: number[];
+  X_sub: number[];
+  Y_sub: number[];
+  k: number;
+  initialK: number;
+  m: number;
+  x0: number;
+  x1: number;
+  h: number;
+  xStar: number;
+}
+
+export function extractBesselSubarray(
+  params: Record<string, string>,
+  logger: Logger,
+): BesselSubarrayResult | null {
+  const X_full = parseCoeffs(params.xList);
+  const Y_full = parseCoeffs(params.yList);
+  const xStar = parseFraction(params.xVal);
+
+  if (X_full.length < 2 || X_full.length !== Y_full.length) {
+    logger.error("Cần ít nhất 2 mốc và hai dãy X, Y phải có cùng số phần tử.");
+    return null;
+  }
+  if (!Number.isFinite(xStar)) {
+    logger.error("Vui lòng nhập điểm cần tính $x^*$ hợp lệ.");
+    return null;
+  }
+
+  const h = X_full[1] - X_full[0];
+  if (
+    Math.abs(h) < 1e-12 ||
+    X_full.some((x, i) => i > 0 && Math.abs(x - X_full[i - 1] - h) > Math.abs(h) * 1e-8)
+  ) {
+    logger.error("Các mốc X phải cách đều với bước lưới h khác 0.");
+    return null;
+  }
+
+  const N_full = X_full.length;
+  const N = N_full - 1; // Chỉ số cuối cùng 0..N
+
+  // Parse số mốc cần lấy N_mốc = 2m (số chẵn)
+  let requestedNodes = Number.parseInt(params.nodeCount || "", 10);
+  if (!Number.isInteger(requestedNodes) || requestedNodes <= 0) {
+    // Mặc định: nếu mảng chẵn lấy toàn bộ; nếu mảng lẻ lấy N_full - 1 hoặc tối thiểu 4 nếu có đủ
+    requestedNodes = N_full % 2 === 0 ? N_full : Math.max(2, N_full - 1);
+  }
+
+  if (requestedNodes % 2 !== 0) {
+    logger.error(`Thuật toán Bessel yêu cầu số mốc $N_{mốc} = 2m$ là số chẵn. Đã nhận: ${requestedNodes}.`);
+    return null;
+  }
+  if (requestedNodes < 2) {
+    logger.error("Cần ít nhất 2 mốc để nội suy Bessel ($m \\ge 1$).");
+    return null;
+  }
+  if (requestedNodes > N_full) {
+    logger.error(
+      `Số mốc yêu cầu $N_{mốc} = ${requestedNodes}$ vượt quá tổng số mốc dữ liệu $N_{full} = ${N_full}$.`,
+    );
+    return null;
+  }
+
+  const m = requestedNodes / 2;
+
+  // Bước 1: Tìm chỉ số k sao cho X_full[k] <= x* < X_full[k+1]
+  let initialK = 0;
+  if (xStar < X_full[0]) {
+    initialK = 0;
+  } else if (xStar >= X_full[N]) {
+    initialK = N - 1;
+  } else {
+    for (let i = 0; i < N; i++) {
+      if (xStar >= X_full[i] && xStar < X_full[i + 1]) {
+        initialK = i;
+        break;
+      }
+    }
+  }
+
+  // Xử lý biên: k = max(m - 1, min(N - m, k))
+  const k = Math.max(m - 1, Math.min(N - m, initialK));
+  const x0 = X_full[k];
+  const x1 = X_full[k + 1];
+
+  // Trích xuất 2m mốc đối xứng quanh khoảng [x0, x1]: X_full[k-m+1 ... k+m]
+  const X_sub = X_full.slice(k - m + 1, k + m + 1);
+  const Y_sub = Y_full.slice(k - m + 1, k + m + 1);
+
+  return {
+    X_full,
+    Y_full,
+    X_sub,
+    Y_sub,
+    k,
+    initialK,
+    m,
+    x0,
+    x1,
+    h,
+    xStar,
+  };
 }
 
 export function logCentralDifferenceTable(

@@ -37,6 +37,7 @@ export type AlgorithmKey =
   | "bessel-interpolation"
   | "least-squares"
   | "smoothing-spline"
+  | "extract-equidistant-nodes"
   | "inverse-isolation"
   | "monotone-intervals"
   | "inverse-newton-forward"
