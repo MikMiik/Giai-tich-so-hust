@@ -48,16 +48,6 @@ export function runPolyDerivativeHorner(
     return;
   }
 
-  if (k === 0) {
-    let value = aCoeffs[0];
-    for (let index = 1; index <= n; index++) {
-      value = value * c + aCoeffs[index];
-    }
-    logger.section("KẾT QUẢ");
-    logger.result(`$$P_n^{(0)}(${cFmt}) = P_n(${cFmt}) = ${fmtNum(value)}$$`);
-    return;
-  }
-
   // Khởi tạo mảng b_j với j = 0 .. n (tương ứng b[0] = a_0, b[n] = a_n)
   // Trong đó aCoeffs[0] = a_n, aCoeffs[n] = a_0 => b[j] = aCoeffs[n - j]
   const b: number[] = [];
@@ -68,18 +58,18 @@ export function runPolyDerivativeHorner(
   logger.section("LẶP SƠ ĐỒ HORNER");
   logger.info(`Dãy khởi tạo: $$[b_0, \\ldots, b_n] = [${b.map((value) => fmtNum(value)).join(", ")}]$$`);
   logger.formula(
-    `$$b_j \\leftarrow b_{j+1} \\cdot c + b_j \\quad (m=1,\\ldots,${k}; \\ j=n-1,\\ldots,m-1)$$`,
+    `$$b_j \\leftarrow b_{j+1} \\cdot c + b_j \\quad (m=0,\\ldots,${k}; \\ j=n-1,\\ldots,m)$$`,
   );
 
-  // Thuật toán:
-  // Lặp m = 1 .. k
-  //   Lặp j = n - 1 lùi về m - 1:
-  //     b_j = b_{j+1} * c + b_j
-  for (let m = 1; m <= k; m++) {
-    logger.step(`Tầng $m = ${m}$`);
+  // Thuật toán Horner liên tiếp tính đạo hàm cấp k:
+  // Khai triển Taylor: P(x) = sum_{m=0}^n d_m * (x - c)^m, với d_m = P^(m)(c) / m!
+  // Mỗi tầng m (từ 0 đến k): thực hiện chia thương cho (x - c), j chạy từ n - 1 lùi về m.
+  // Tại tầng m, phần tử b_m thu được chính là d_m.
+  for (let m = 0; m <= k; m++) {
+    logger.step(`Tầng $m = ${m}$ (tương ứng đạo hàm cấp $${m}$)`);
     const tableStep: Record<string, unknown>[] = [];
 
-    for (let j = n - 1; j >= m - 1; j--) {
+    for (let j = n - 1; j >= m; j--) {
       const prevVal = b[j];
       const upperVal = b[j + 1];
       const prod = upperVal * c;
@@ -91,19 +81,21 @@ export function runPolyDerivativeHorner(
       });
     }
 
-    logger.table(tableStep);
+    if (tableStep.length > 0) {
+      logger.table(tableStep);
+    } else {
+      logger.info(`Tầng $m = ${m} = n$: giữ nguyên $b_${m} = ${fmtNum(b[m])}$.`);
+    }
   }
   logger.separator();
 
   logger.section("KẾT QUẢ");
 
   const kFact = factorial(k);
-  let derivValue = 0;
-
-  const bTarget = b[k - 1];
-  derivValue = kFact * bTarget;
+  const bTarget = b[k];
+  const derivValue = kFact * bTarget;
   logger.formula(
-    `$$P_n^{(${k})}(${cFmt}) = ${k}! \\cdot b_{${k - 1}} = ${kFact} \\cdot (${fmtNum(bTarget)}) = ${fmtNum(derivValue)}$$`,
+    `$$P_n^{(${k})}(${cFmt}) = ${k}! \\cdot b_{${k}} = ${kFact} \\cdot (${fmtNum(bTarget)}) = ${fmtNum(derivValue)}$$`,
   );
   logger.result(`$$P_n^{(${k})}(${cFmt}) = ${fmtNum(derivValue)}$$`);
 }

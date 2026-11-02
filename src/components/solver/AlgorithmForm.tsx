@@ -1044,13 +1044,13 @@ function InverseInterpolationFields({
   const isInversePoly = method === "inverse-newton-forward";
   const hintX =
     method === "inverse-newton-forward"
-      ? "0 1 2"
+      ? "0 1 2 3 4 5"
       : isIteration
         ? "1.0 1.2 1.4 1.6 1.8"
         : "0 1 2 3 4 5";
   const hintY =
     method === "inverse-newton-forward"
-      ? "1 3 4"
+      ? "1 3 4 2 0 1"
       : isIteration
         ? "1.00 1.28 1.76 2.48 3.48"
         : "1 3 4 2 0 1";
@@ -1091,7 +1091,7 @@ function InverseInterpolationFields({
         />
         <div className="form-hint">
           Ví dụ: <code>{hintY}</code>
-          {isInversePoly ? " (đơn điệu, đôi một khác nhau)" : ""}
+          {isInversePoly ? " (tùy ý; nếu chưa đơn điệu sẽ tự động tìm khoảng đơn điệu chứa ȳ)" : ""}
         </div>
       </div>
       {needsYBar && (
@@ -1112,6 +1112,46 @@ function InverseInterpolationFields({
             <div className="form-hint">Ví dụ: <code>{isIteration ? "2.0" : "2.5"}</code></div>
           </div>
         </>
+      )}
+      {isInversePoly && (
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label" htmlFor="in-invNodeCount">
+              Số mốc cần lấy <code>k</code> (Tùy chọn)
+            </label>
+            <input
+              className="form-input"
+              id="in-invNodeCount"
+              name="nodeCount"
+              type="number"
+              min="2"
+              placeholder="Mặc định: lấy hết mốc của khoảng"
+              spellCheck={false}
+              onKeyDown={onKeyDown}
+            />
+            <div className="form-hint">
+              Nhập <code>k ≥ 2</code> để trích xuất <code>k</code> mốc tối ưu xung quanh <code>ȳ</code>.
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="in-invIntervalIdx">
+              Chỉ số khoảng đơn điệu <code>K_j</code> (Tùy chọn)
+            </label>
+            <input
+              className="form-input"
+              id="in-invIntervalIdx"
+              name="intervalIndex"
+              type="number"
+              min="1"
+              placeholder="Mặc định: khoảng đầu tiên chứa ȳ"
+              spellCheck={false}
+              onKeyDown={onKeyDown}
+            />
+            <div className="form-hint">
+              Khi có nhiều khoảng đơn điệu cùng chứa <code>ȳ</code>, có thể nhập <code>1, 2, ...</code> để chỉ định khoảng.
+            </div>
+          </div>
+        </div>
       )}
       {isIteration && (
         <>
@@ -1140,7 +1180,26 @@ function InverseInterpolationFields({
                 type="text"
                 onKeyDown={onKeyDown}
               />
-              <div className="form-hint">Để trống nếu chỉ có một khoảng cách ly.</div>
+              <div className="form-hint">
+                Để trống để giải tất cả khoảng cách ly; hoặc nhập k để chỉ giải một khoảng.
+              </div>
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="in-iterNodeCount">
+              Số mốc cần lấy <code>n</code> (Tùy chọn)
+            </label>
+            <input
+              className="form-input"
+              id="in-iterNodeCount"
+              name="nodeCount"
+              type="number"
+              min="2"
+              placeholder="Mặc định: dùng toàn bộ bảng"
+              onKeyDown={onKeyDown}
+            />
+            <div className="form-hint">
+              Nhập n ≥ 2 để trích xuất n mốc cách đều quanh khoảng cách ly, giảm bảng sai phân.
             </div>
           </div>
         </>
