@@ -1,5 +1,6 @@
 import type { Logger } from "@/types/solver";
 import { fmtNum, fmtPoly, parseCoeffs, parseFraction } from "./math-utils";
+import { logInterpolationErrorEstimate } from "./interpolation-error";
 
 export function runLagrangeInterpolation(
   params: Record<string, string>,
@@ -191,6 +192,8 @@ export function runLagrangeInterpolation(
   logger.result(`$$P_{${n}}(x) = ${fmtPoly(P_coeffs)}$$`);
 
   // ── 6. Giá trị nội suy (nếu có) ─────────────────────────
+  let xStarForError: number | null = null;
+  let pStarForError: number | null = null;
   if (xValStr && xValStr.trim() !== "") {
     const xStar = parseFraction(xValStr);
     if (!isNaN(xStar)) {
@@ -202,6 +205,20 @@ export function runLagrangeInterpolation(
       }
       logger.formula(`$$x^* = ${fmtNum(xStar)}$$`);
       logger.result(`$$P_{${n}}(${fmtNum(xStar)}) = ${fmtNum(valStar)}$$`);
+      xStarForError = xStar;
+      pStarForError = valStar;
     }
+  }
+
+  // ── 7. Đánh giá sai số (nếu đề yêu cầu) ─────────────────
+  if ((params.errFx ?? "").trim() !== "" || (params.errM ?? "").trim() !== "") {
+    logger.separator();
+    logInterpolationErrorEstimate(logger, {
+      X,
+      xStar: xStarForError,
+      pAtXStar: pStarForError,
+      errFx: params.errFx,
+      errM: params.errM,
+    });
   }
 }

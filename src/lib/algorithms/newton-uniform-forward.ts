@@ -1,5 +1,11 @@
 import type { Logger } from "@/types/solver";
 import { fmtNum, fmtPoly, parseCoeffs, parseFraction } from "./math-utils";
+import { logInterpolationErrorEstimate } from "./interpolation-error";
+
+interface UniformErrorParams {
+  errFx?: string;
+  errM?: string;
+}
 
 // ---------------------------------------------------------------------------
 // Helper: Lập bảng sai phân tiến
@@ -167,6 +173,7 @@ function runCoreUniformForward(
   Ysub: number[],
   xStar: number | null,
   sectionOffset = 0,
+  errorParams: UniformErrorParams = {},
 ): void {
   const numPoints = Xsub.length;
   const n = numPoints - 1;
@@ -217,6 +224,7 @@ function runCoreUniformForward(
   logger.result(`$$P_{${n}}(x) = ${fmtPoly(standardCoeffs)}$$`);
 
   // --- Tính giá trị tại x* ---
+  let valStarForError: number | null = null;
   if (xStar !== null) {
     logger.section(`${sIdx(5)}. TÍNH GIÁ TRỊ TẠI ĐIỂM ƯỚC LƯỢNG`);
     const tStar = (xStar - x0) / h;
@@ -227,6 +235,23 @@ function runCoreUniformForward(
     logger.result(
       `$$P_{${n}}(${fmtNum(xStar)}) = P_{${n}}(t^* = ${fmtNum(tStar)}) = ${fmtNum(valStar)}$$`,
     );
+    valStarForError = valStar;
+  }
+
+  // --- Đánh giá sai số (nếu đề yêu cầu) ---
+  if (
+    (errorParams.errFx ?? "").trim() !== "" ||
+    (errorParams.errM ?? "").trim() !== ""
+  ) {
+    logInterpolationErrorEstimate(logger, {
+      X: Xsub,
+      xStar,
+      pAtXStar: valStarForError,
+      errFx: errorParams.errFx,
+      errM: errorParams.errM,
+      sectionTitle: `${sIdx(6)}. ĐÁNH GIÁ SAI SỐ NỘI SUY`,
+      uniformStep: h,
+    });
   }
 }
 
@@ -320,7 +345,7 @@ export function runNewtonUniformForward(
       xValStr && xValStr.trim() !== "" ? parseFraction(xValStr) : null;
     const xStarValid = xStar !== null && !isNaN(xStar);
 
-    runCoreUniformForward(logger, X, Y, xStarValid ? xStar : null, 1);
+    runCoreUniformForward(logger, X, Y, xStarValid ? xStar : null, 1, params);
   } else {
     // =====================================================================
     // THUẬT TOÁN 2 — Tự động chọn mốc tối ưu quanh x*
@@ -398,6 +423,6 @@ export function runNewtonUniformForward(
     logger.separator();
 
     // Bước 4-5: Áp core lên mảng con
-    runCoreUniformForward(logger, Xsub, Ysub, xStar, 3);
+    runCoreUniformForward(logger, Xsub, Ysub, xStar, 3, params);
   }
 }

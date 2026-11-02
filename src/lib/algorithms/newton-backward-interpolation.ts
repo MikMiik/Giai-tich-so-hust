@@ -1,5 +1,6 @@
 import type { Logger } from "@/types/solver";
 import { fmtNum, fmtPoly, parseCoeffs, parseFraction } from "./math-utils";
+import { logInterpolationErrorEstimate } from "./interpolation-error";
 
 export function runNewtonBackwardInterpolation(
   params: Record<string, string>,
@@ -144,6 +145,8 @@ export function runNewtonBackwardInterpolation(
   logger.result(`$$P_{${n}}(x) = ${fmtPoly(standardCoeffs)}$$`);
 
   // 5. Nếu người dùng nhập điểm x*, tính giá trị ước lượng P_n(x*)
+  let xStarForError: number | null = null;
+  let pStarForError: number | null = null;
   if (xValStr && xValStr.trim() !== "") {
     const xStar = parseFraction(xValStr);
     if (!isNaN(xStar)) {
@@ -157,6 +160,20 @@ export function runNewtonBackwardInterpolation(
       }
       logger.formula(`$$x^* = ${fmtNum(xStar)}$$`);
       logger.result(`$$P_{${n}}(${fmtNum(xStar)}) = ${fmtNum(valStar)}$$`);
+      xStarForError = xStar;
+      pStarForError = valStar;
     }
+  }
+
+  // 6. Đánh giá sai số (nếu đề yêu cầu)
+  if ((params.errFx ?? "").trim() !== "" || (params.errM ?? "").trim() !== "") {
+    logger.separator();
+    logInterpolationErrorEstimate(logger, {
+      X,
+      xStar: xStarForError,
+      pAtXStar: pStarForError,
+      errFx: params.errFx,
+      errM: params.errM,
+    });
   }
 }

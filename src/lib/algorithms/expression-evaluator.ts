@@ -82,6 +82,45 @@ function validateNode(node: MathNode): void {
   });
 }
 
+/**
+ * Biên dịch đạo hàm cấp `order` của f(x) (đạo hàm ký hiệu bằng mathjs).
+ * Trả về hàm số và dạng LaTeX của f^{(order)}(x).
+ */
+export function compileDerivative(
+  source: string,
+  order: number,
+): { fn: (x: number) => number; tex: string } {
+  if (typeof source !== "string" || source.trim().length === 0) {
+    throw new Error("Biểu thức không được để trống.");
+  }
+  if (source.length > MAX_EXPRESSION_LENGTH) {
+    throw new Error(`Biểu thức không được dài quá ${MAX_EXPRESSION_LENGTH} ký tự.`);
+  }
+  if (!Number.isInteger(order) || order < 1 || order > 12) {
+    throw new Error("Cấp đạo hàm phải là số nguyên trong khoảng 1..12.");
+  }
+
+  const node = math.parse(normalizeExpression(source));
+  validateNode(node);
+
+  let derived: MathNode = node;
+  for (let i = 0; i < order; i++) {
+    derived = math.derivative(derived, "x");
+  }
+  const compiled = derived.compile();
+
+  return {
+    fn: (x: number) => {
+      const value = compiled.evaluate({ x });
+      if (typeof value !== "number" || !Number.isFinite(value)) {
+        throw new Error("Đạo hàm không trả về một số hữu hạn trên đoạn khảo sát.");
+      }
+      return value;
+    },
+    tex: derived.toTex(),
+  };
+}
+
 export function compileExpression(source: string): (x: number) => number {
   if (typeof source !== "string" || source.trim().length === 0) {
     throw new Error("Biểu thức không được để trống.");

@@ -410,6 +410,53 @@ function PolyProductLinearFields({ onKeyDown }: FieldProps) {
   );
 }
 
+function InterpolationErrorFields({ onKeyDown }: FieldProps) {
+  return (
+    <>
+      <div className="form-section-title">Đánh giá sai số (nếu đề yêu cầu)</div>
+      <div className="matrix-help">
+        Sai số nội suy: <code>|R(x)| ≤ M_(n+1)/(n+1)! · |w_(n+1)(x)|</code>, với{" "}
+        <code>w_(n+1)(x) = Π(x − x_i)</code>, <code>M_(n+1) = max |f^(n+1)(x)|</code> trên [a, b].
+        Nhập <b>f(x)</b> để tự tính M_(n+1), hoặc nhập thẳng <b>M_(n+1)</b> nếu đề đã cho. Để trống cả hai nếu đề không yêu cầu.
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-errFx">
+            Hàm <code>f(x)</code> (tùy chọn)
+          </label>
+          <input
+            className="form-input"
+            id="in-errFx"
+            name="errFx"
+            type="text"
+            spellCheck={false}
+            autoComplete="off"
+            onKeyDown={onKeyDown}
+          />
+          <div className="form-hint">
+            Ví dụ: <code>sin(x)</code>, <code>exp(x)</code>, <code>x^3 + 2*x</code>, <code>log(x)</code>
+          </div>
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-errM">
+            Hoặc <code>M_(n+1)</code> cho trước (tùy chọn)
+          </label>
+          <input
+            className="form-input"
+            id="in-errM"
+            name="errM"
+            type="text"
+            spellCheck={false}
+            autoComplete="off"
+            onKeyDown={onKeyDown}
+          />
+          <div className="form-hint">Ví dụ: <code>1</code>, <code>2.5</code> (ưu tiên hơn f(x))</div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function LagrangeInterpolationFields({ onKeyDown }: FieldProps) {
   return (
     <>
@@ -465,6 +512,7 @@ function LagrangeInterpolationFields({ onKeyDown }: FieldProps) {
           Ví dụ: <code>1.6</code> (để trống nếu chỉ muốn tìm đa thức)
         </div>
       </div>
+      <InterpolationErrorFields onKeyDown={onKeyDown} />
     </>
   );
 }
@@ -524,6 +572,7 @@ function NewtonForwardInterpolationFields({ onKeyDown }: FieldProps) {
           Ví dụ: <code>1.6</code> (để trống nếu chỉ muốn tìm đa thức)
         </div>
       </div>
+      <InterpolationErrorFields onKeyDown={onKeyDown} />
     </>
   );
 }
@@ -583,6 +632,7 @@ function NewtonBackwardInterpolationFields({ onKeyDown }: FieldProps) {
           Ví dụ: <code>3.1</code> (để trống nếu chỉ muốn tìm đa thức)
         </div>
       </div>
+      <InterpolationErrorFields onKeyDown={onKeyDown} />
     </>
   );
 }
@@ -722,6 +772,7 @@ function NewtonUniformForwardFields({ onKeyDown }: FieldProps) {
           )}
         </div>
       </div>
+      <InterpolationErrorFields onKeyDown={onKeyDown} />
     </>
   );
 }
