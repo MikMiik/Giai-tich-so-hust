@@ -14,6 +14,91 @@ function fmtTerm(coeff: number, varPart: string, isFirst: boolean): string {
   return `${sign}${fmtNum(Math.abs(coeff))}${varPart}`;
 }
 
+// Tìm phân số tối giản xấp xỉ dạng LaTeX
+function toFractionLatex(val: number, maxDen = 500): string | null {
+  const eps = 1e-6;
+  const sign = val < 0 ? "-" : "";
+  const absVal = Math.abs(val);
+  for (let den = 1; den <= maxDen; den++) {
+    const num = Math.round(absVal * den);
+    if (Math.abs(absVal - num / den) < eps) {
+      if (den === 1) return `${sign}${num}`;
+      return `${sign}\\frac{${num}}{${den}}`;
+    }
+  }
+  return null;
+}
+
+// Xây dựng ma trận khai triển tích cơ sở của Stirling theo lũy thừa của t
+function getStirlingBasisData(m: number) {
+  const n = 2 * m;
+  // E[i] là đa thức theo w = t^2: \prod_{r=1}^{i-1} (w - r^2) với i = 1..m
+  const E: number[][] = [[], [1]];
+  for (let i = 2; i <= m; i++) {
+    const shift = (i - 1) * (i - 1);
+    const prev = E[i - 1];
+    const curr = new Array(prev.length + 1).fill(0);
+    for (let r = 0; r < prev.length; r++) {
+      curr[r] -= shift * prev[r];
+      curr[r + 1] += prev[r];
+    }
+    E.push(curr);
+  }
+
+  // Khởi tạo ma trận cơ sở: 2m + 1 hàng, mỗi hàng là đa thức theo t từ bậc 0 đến n
+  const basisMatrix: number[][] = [];
+  const basisLabels: string[] = [];
+
+  // Hàng 0: cơ sở hằng số 1
+  const row0 = new Array(n + 1).fill(0);
+  row0[0] = 1;
+  basisMatrix.push(row0);
+  basisLabels.push("$1$");
+
+  for (let i = 1; i <= m; i++) {
+    // Cơ sở lẻ: t \prod_{r=1}^{i-1} (t^2 - r^2)
+    const polyOdd = new Array(n + 1).fill(0);
+    const e = E[i];
+    for (let r = 0; r < e.length; r++) {
+      polyOdd[2 * r + 1] = e[r];
+    }
+    basisMatrix.push(polyOdd);
+
+    const baseProd = i === 1
+      ? ""
+      : Array.from({ length: i - 1 }, (_, idx) => `\\left(t^2 - ${(idx + 1) ** 2}\\right)`).join("");
+    basisLabels.push(i === 1 ? "$t$" : `$t${baseProd}$`);
+
+    // Cơ sở chẵn: t^2 \prod_{r=1}^{i-1} (t^2 - r^2)
+    const polyEven = new Array(n + 1).fill(0);
+    for (let r = 0; r < e.length; r++) {
+      polyEven[2 * r + 2] = e[r];
+    }
+    basisMatrix.push(polyEven);
+    basisLabels.push(i === 1 ? "$t^2$" : `$t^2${baseProd}$`);
+  }
+
+  return { basisMatrix, basisLabels };
+}
+
+// Định dạng đa thức chính tắc P_n(t)
+function fmtCanonicalPolyT(A: number[]): string {
+  const n = A.length - 1;
+  const terms: string[] = [];
+  for (let p = n; p >= 0; p--) {
+    const coeff = A[p];
+    if (Math.abs(coeff) < 1e-12) continue;
+    let varPart = "";
+    if (p > 1) varPart = `t^{${p}}`;
+    else if (p === 1) varPart = "t";
+
+    const isFirst = terms.length === 0;
+    const sign = isFirst ? (coeff < 0 ? "-" : "") : coeff < 0 ? " - " : " + ";
+    terms.push(`${sign}${fmtNum(Math.abs(coeff), 6)}${varPart}`);
+  }
+  return terms.length > 0 ? terms.join("") : "0";
+}
+
 export function runStirlingInterpolation(
   params: Record<string, string>,
   logger: Logger,
@@ -151,15 +236,96 @@ export function runStirlingInterpolation(
     if (oddTerm) oddTerms.push(oddTerm);
   }
 
-  logger.section("ĐA THỨC STIRLING");
+  logger.section("ĐA THỨC STIRLING (Dạng Tích Cơ Sở)");
   logger.formula(`$$P_{\\text{chẵn}}(t) = ${evenTerms.join("")}$$`);
   logger.formula(`$$P_{\\text{lẻ}}(t) = ${oddTerms.length ? oddTerms.join("") : "0"}$$`);
   logger.formula(`$$P(t) = P_{\\text{chẵn}}(t) + P_{\\text{lẻ}}(t)$$`);
   logger.separator();
 
-  // ── 7. Kết quả xấp xỉ và đạo hàm ─────────────────────────
-  logger.section("KẾT QUẢ");
-  logger.result(`$$P_{\\text{chẵn}}(${fmtNum(t)}) = ${fmtNum(evenValue)}, \\quad P_{\\text{lẻ}}(${fmtNum(t)}) = ${fmtNum(oddValue)}$$`);
-  logger.result(`$$f(${fmtNum(xStar)}) \\approx P(${fmtNum(xStar)}) = ${fmtNum(evenValue)} + ${fmtNum(oddValue)} = ${fmtNum(evenValue + oddValue)}$$`);
-  logger.result(`$$f'(${fmtNum(xStar)}) \\approx \\frac{1}{h}\\left(P_{\\text{chẵn}}'(t) + P_{\\text{lẻ}}'(t)\\right) = ${fmtNum((evenDerivative + oddDerivative) / h)}$$`);
+  // ── 7. Bảng nhân cơ sở theo lũy thừa của t ──────────────
+  logger.section("BẢNG NHÂN MA TRẬN CƠ SỞ THEO LŨY THỪA CỦA t");
+  const n = 2 * m;
+  const { basisMatrix, basisLabels } = getStirlingBasisData(m);
+
+  logger.info(`Khai triển các tích cơ sở theo lũy thừa của $t$, ta có bảng nhân (hệ số từ $t^{${n}}, \\dots, t, 1$):`);
+  const basisTableRows: Record<string, unknown>[] = [];
+  for (let j = 0; j <= 2 * m; j++) {
+    const rowObj: Record<string, unknown> = {
+      "Tích cơ sở": basisLabels[j],
+    };
+    for (let p = n; p >= 0; p--) {
+      const colHeader = p > 1 ? `$t^{${p}}$` : p === 1 ? "$t$" : "$1$";
+      const val = basisMatrix[j][p];
+      rowObj[colHeader] = Math.abs(val) < 1e-12 ? "$0$" : `$${val}$`;
+    }
+    basisTableRows.push(rowObj);
+  }
+  logger.table(basisTableRows);
+  logger.separator();
+
+  // ── 8. Dạng chính tắc của đa thức Stirling ────────────────
+  logger.section("DẠNG CHÍNH TẮC CỦA ĐA THỨC STIRLING");
+  logger.info("Nhân từng hàng của bảng nhân với hệ số $c_j$ tương ứng rồi cộng theo cột, ta được dạng chính tắc:");
+
+  // Mảng hệ số c_j: c[0] = even[0], sau đó c_{2i-1} = odd[i], c_{2i} = even[i]
+  const c: number[] = [even[0]];
+  for (let i = 1; i <= m; i++) {
+    c.push(odd[i]);
+    c.push(even[i]);
+  }
+
+  // A[p] là hệ số của t^p trong đa thức chính tắc
+  const A = new Array(n + 1).fill(0);
+  for (let p = 0; p <= n; p++) {
+    for (let j = 0; j <= 2 * m; j++) {
+      A[p] += c[j] * basisMatrix[j][p];
+    }
+  }
+
+  const canonicalPolyStr = fmtCanonicalPolyT(A);
+  logger.formula(`$$P_{${n}}(t) = ${canonicalPolyStr}$$`);
+  logger.separator();
+
+  // ── 9. Kết quả xấp xỉ và đạo hàm (Sơ đồ Horner & Biến gốc x) ─
+  logger.section("KẾT QUẢ XẤP XỈ VÀ ĐẠO HÀM");
+
+  const fracT = toFractionLatex(t);
+  const tFracStr = fracT ? ` = ${fracT} \\approx ${fmtNum(t, 6)}` : ` = ${fmtNum(t, 6)}`;
+
+  logger.info(`Tại $\\bar{x} = ${fmtNum(xStar)}$, ta có bước đổi biến:`);
+  logger.formula(`$$\\bar{t} = \\frac{${fmtNum(xStar)} - ${fmtNum(x0)}}{${fmtNum(h)}}${tFracStr}$$`);
+
+  // Tính P(t) và P'(t) bằng sơ đồ Horner
+  const bHorner = new Array(n + 1).fill(0);
+  bHorner[n] = A[n];
+  for (let p = n - 1; p >= 0; p--) {
+    bHorner[p] = A[p] + t * bHorner[p + 1];
+  }
+  const hornerPVal = bHorner[0];
+
+  let hornerDVal = 0;
+  if (n >= 1) {
+    let cHorner = bHorner[n];
+    for (let p = n - 1; p >= 1; p--) {
+      cHorner = bHorner[p] + t * cHorner;
+    }
+    hornerDVal = cHorner;
+  }
+
+  logger.info("Tính $P(\\bar{t})$ và $P'(\\bar{t})$ bằng sơ đồ Horner (hoặc đạo hàm trực tiếp rồi thay $\\bar{t}$):");
+  logger.result(
+    `$$f(${fmtNum(xStar)}) \\approx P_{${n}}(\\bar{t}) = ${fmtNum(hornerPVal, 6)}, \\qquad \\left.\\frac{dP_{${n}}}{dt}\\right|_{t=\\bar{t}} \\approx ${fmtNum(hornerDVal, 6)}$$`,
+  );
+
+  const fxPrime = hornerDVal / h;
+  logger.info("Đạo hàm theo biến gốc $x$:");
+  logger.result(
+    `$$f'(${fmtNum(xStar)}) \\approx P'_{${n}}(${fmtNum(xStar)}) = \\left.\\frac{1}{h} \\frac{dP_{${n}}}{dt}\\right|_{t=\\bar{t}} = \\frac{${fmtNum(hornerDVal, 6)}}{${fmtNum(h)}} \\approx ${fmtNum(fxPrime, 6)}$$`,
+  );
+
+  // Đối chiếu kiểm tra tính nhất quán với dạng tích cơ sở hiện tại
+  logger.info(
+    `Kiểm chứng tính nhất quán: $P_{\\text{chẵn}}(${fmtNum(t)}) + P_{\\text{lẻ}}(${fmtNum(t)}) = ${fmtNum(evenValue)} + ${fmtNum(oddValue)} = ${fmtNum(evenValue + oddValue)}$. ` +
+    `Sai khác giữa hai dạng: $${fmtNum(Math.abs(hornerPVal - (evenValue + oddValue)))}$.`,
+  );
 }

@@ -23,20 +23,36 @@
        $$C_{\text{chẵn}}[i] = \frac{\Delta_{-i, \, 2i} + \Delta_{-i+1, \, 2i}}{2 \cdot (2i)!}$$
      - Lặp $i = 0, \dots, m-1$:
        $$C_{\text{lẻ}}[i] = \frac{\Delta_{-i, \, 2i+1}}{(2i+1)!}$$
-  5. **Tính tích lũy hai thành phần độc lập tại $u$:**
-     - $P_{\text{chẵn}} = C_{\text{chẵn}}[0]$, $P_{\text{lẻ}} = C_{\text{lẻ}}[0] \cdot u$.
-     - $W_{\text{chẵn}} = 1$, $W_{\text{lẻ}} = u$.
-     - Lặp $i = 1, \dots, m-1$:
-       - $W_{\text{chẵn}} = W_{\text{chẵn}} \cdot \left(u^2 - \frac{(2i-1)^2}{4}\right)$
-       - $P_{\text{chẵn}} = P_{\text{chẵn}} + C_{\text{chẵn}}[i] \cdot W_{\text{chẵn}}$
-       - $W_{\text{lẻ}} = W_{\text{lẻ}} \cdot \left(u^2 - \frac{(2i-1)^2}{4}\right)$
-       - $P_{\text{lẻ}} = P_{\text{lẻ}} + C_{\text{lẻ}}[i] \cdot W_{\text{lẻ}}$
-     - $f(x^*) \approx P_{\text{chẵn}} + P_{\text{lẻ}}$.
-  6. **(Tùy chọn) Tính đạo hàm:**
-     - Lấy đạo hàm $P_{\text{chẵn}}'(u)$ và $P_{\text{lẻ}}'(u)$ theo biến $u$.
-     - $$f'(x^*) \approx \frac{1}{h} \left( P_{\text{chẵn}}'(u) + P_{\text{lẻ}}'(u) \right)$$
+  5. **Đa thức Bessel theo dạng tích cơ sở:**
+     - $P_{\text{chẵn}}(u) = C_{\text{chẵn}}[0] + \sum_{i=1}^{m-1} C_{\text{chẵn}}[i] \prod_{r=0}^{i-1} \left(u^2 - \frac{(2r+1)^2}{4}\right)$
+     - $P_{\text{lẻ}}(u) = C_{\text{lẻ}}[0]u + \sum_{i=1}^{m-1} C_{\text{lẻ}}[i] u \prod_{r=0}^{i-1} \left(u^2 - \frac{(2r+1)^2}{4}\right)$
+     - $P(u) = P_{\text{chẵn}}(u) + P_{\text{lẻ}}(u)$
+  6. **Khai triển các tích cơ sở theo lũy thừa của $u$ (Bảng nhân ma trận cơ sở):**
+     - Đặt các cơ sở:
+       - $B_{2i}(u) = \prod_{r=0}^{i-1} \left(u^2 - \frac{(2r+1)^2}{4}\right)$ (với $B_0(u) = 1$)
+       - $B_{2i+1}(u) = u \cdot B_{2i}(u)$ (với $B_1(u) = u$)
+     - Khai triển $B_j(u)$ thành đa thức theo các lũy thừa của $u$:
+       $$B_j(u) = \sum_{p=0}^{n} M_{j, p} u^p \quad (j = 0, \dots, 2m-1, \; n = 2m-1)$$
+     - Lập bảng ma trận kích thước $2m \times 2m$ chứa các hệ số $M_{j, p}$ ứng với các cột lũy thừa $u^n, u^{n-1}, \dots, u, 1$.
+  7. **Dạng chính tắc của đa thức Bessel $P_n(u)$:**
+     - Ghép vector hệ số $c_j$: $c_{2i} = C_{\text{chẵn}}[i]$, $c_{2i+1} = C_{\text{lẻ}}[i]$ với $i = 0, \dots, m-1$.
+     - Nhân từng hàng của bảng nhân với hệ số $c_j$ tương ứng rồi cộng theo từng cột $p$:
+       $$A_p = \sum_{j=0}^{2m-1} c_j M_{j, p} \quad (p = 0, \dots, n)$$
+     - Thu được dạng chính tắc:
+       $$P_n(u) = \sum_{p=0}^n A_p u^p = A_n u^n + A_{n-1} u^{n-1} + \dots + A_1 u + A_0$$
+  8. **Đổi biến số tại điểm tính toán $\bar{x}$:**
+     $$\bar{t} = \frac{\bar{x} - x_0}{h} \implies \bar{u} = \bar{t} - \frac{1}{2}$$
+     (Trình bày dưới dạng phân số tối giản và giá trị số thập phân).
+  9. **Tính giá trị xấp xỉ và đạo hàm (Sơ đồ Horner & Biến gốc $x$):**
+     - Áp dụng sơ đồ Horner hai lần trên đa thức chính tắc $P_n(u)$ tại $u = \bar{u}$ để thu được $P_n(\bar{u})$ và $\left.\frac{dP_n}{du}\right|_{u=\bar{u}}$:
+       $$f(\bar{x}) \approx P_n(\bar{u})$$
+     - Tính đạo hàm theo biến gốc $x$:
+       $$f'(\bar{x}) \approx P'_n(\bar{x}) = \left.\frac{1}{h} \frac{dP_n}{du}\right|_{u=\bar{u}}$$
 - **Output:**
-  - Mốc trung tâm $x_0$ và mảng trích xuất $X_{sub}, Y_{sub}$.
-  - Hệ số $C_{\text{chẵn}}, C_{\text{lẻ}}$.
-  - Đa thức $P(u) = P_{\text{chẵn}}(u) + P_{\text{lẻ}}(u)$.
-  - Giá trị $f(x^*)$ và $f'(x^*)$.
+  - Mốc trung tâm $x_0, x_1$ và mảng trích xuất $X_{sub}, Y_{sub}$.
+  - Bảng sai phân trung tâm và hệ số tách chẵn - lẻ $C_{\text{chẵn}}, C_{\text{lẻ}}$.
+  - Đa thức dạng tích cơ sở $P_{\text{chẵn}}(u), P_{\text{lẻ}}(u)$.
+  - Bảng nhân ma trận cơ sở theo lũy thừa của $u$.
+  - Đa thức dạng chính tắc $P_n(u)$.
+  - Các bước đổi biến chi tiết ($\bar{t}, \bar{u}$).
+  - Giá trị $f(\bar{x}) \approx P_n(\bar{u})$, $\left.\frac{dP_n}{du}\right|_{u=\bar{u}}$ và đạo hàm $f'(\bar{x})$.
