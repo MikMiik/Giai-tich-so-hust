@@ -97,8 +97,15 @@ export function runSmoothingSpline(
   const Y = parseCoeffs(params.yList);
   const degree = Number.parseInt(params.degree, 10);
   const xStar = params.xVal?.trim() ? parseFraction(params.xVal) : NaN;
-  const b1 = parseFraction(params.boundary1 || "0");
-  const b2 = parseFraction(params.boundary2 || "0");
+
+  // Hỗ trợ cả tên tham số mới (boundaryVal1/2) và cũ (boundary1/2)
+  const rawB1 = params.boundaryVal1?.trim() || params.boundary1?.trim() || "0";
+  const rawB2 = params.boundaryVal2?.trim() || params.boundary2?.trim() || "0";
+  const b1 = parseFraction(rawB1);
+  const b2 = parseFraction(rawB2);
+
+  // Dạng biên cho p = 3: "second" (S'') hoặc "clamped" (S')
+  const boundaryType3 = params.boundaryType3 === "clamped" ? "clamped" : "second";
 
   // ── Kiểm tra đầu vào ────────────────────────────────────
   if (!Number.isInteger(degree) || degree < 1 || degree > 3) {
@@ -116,13 +123,36 @@ export function runSmoothingSpline(
       return;
     }
   }
-  if (degree >= 2 && !Number.isFinite(b1)) {
-    logger.error("Cần nhập điều kiện biên $b_1$ hợp lệ.");
+
+  // Xác định mốc điều kiện biên cho p = 2 (có thể là bất kỳ mốc x_i nào từ 1 đến n)
+  let nodeIdx2 = 0; // 0-based
+  if (params.boundaryNode2 && params.boundaryNode2.trim() !== "") {
+    const rawNode = params.boundaryNode2.trim().toLowerCase();
+    if (rawNode === "xn") {
+      nodeIdx2 = nNodes - 1;
+    } else if (rawNode.startsWith("x")) {
+      const parsed = parseInt(rawNode.slice(1), 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= nNodes) {
+        nodeIdx2 = parsed - 1;
+      }
+    } else {
+      const parsed = parseInt(rawNode, 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= nNodes) {
+        nodeIdx2 = parsed - 1;
+      }
+    }
+  } else if (params.boundaryPos2 === "xn") {
+    nodeIdx2 = nNodes - 1;
+  }
+
+  if (degree === 2 && !Number.isFinite(b1)) {
+    logger.error(`Cần nhập điều kiện biên $S'(x_{${nodeIdx2 + 1}})$ hợp lệ.`);
     return;
   }
   if (degree === 3) {
-    if (!Number.isFinite(b2)) {
-      logger.error("Spline bậc 3 cần 2 điều kiện biên $\\alpha_1, \\alpha_n$.");
+    if (!Number.isFinite(b1) || !Number.isFinite(b2)) {
+      const typeLabel = boundaryType3 === "clamped" ? "S'(x_1), S'(x_n)" : "S''(x_1), S''(x_n)";
+      logger.error(`Spline bậc 3 cần 2 điều kiện biên $${typeLabel}$.`);
       return;
     }
     if (nNodes < 3) {
@@ -185,20 +215,51 @@ export function runSmoothingSpline(
     return;
   }
 
-  // ── p = 2: Spline bậc 2 với đệ quy tiến ────────────────
+  // ── p = 2: Spline bậc 2 với đệ quy tiến / lùi / hai chiều từ mốc x_i ───
   if (degree === 2) {
-    logger.section("ĐỆ QUY TIẾN TÌM ĐẠO HÀM m_k (p = 2)");
-    logger.formula(`$$m_1 = ${fmtNum(b1)} \\;(\\text{điều kiện biên}), \\quad m_{k+1} = \\frac{2(y_{k+1}-y_k)}{h_k} - m_k$$`);
+    const m: number[] = Array(nNodes).fill(0);
+    const chosenNodeName = `x_{${nodeIdx2 + 1}}`;
 
-    const m: number[] = [b1];
-    const mTable: Record<string, unknown>[] = [{ "$k$": "$1$", "$m_k = S'(x_k)$": `$${fmtNum(b1)}$`, "Nguồn": "Điều kiện biên" }];
-    for (let k = 0; k < intervals; k++) {
-      const mk1 = 2 * (Y[k + 1] - Y[k]) / h[k] - m[k];
-      m.push(mk1);
+    // Gán giá trị biên tại mốc đã chọn
+    m[nodeIdx2] = b1;
+
+    // Chiều tiến: từ nodeIdx2 tiến về n - 1
+    for (let k = nodeIdx2; k < intervals; k++) {
+      m[k + 1] = (2 * (Y[k + 1] - Y[k])) / h[k] - m[k];
+    }
+
+    // Chiều lùi: từ nodeIdx2 - 1 lùi về 0
+    for (let k = nodeIdx2 - 1; k >= 0; k--) {
+      m[k] = (2 * (Y[k + 1] - Y[k])) / h[k] - m[k + 1];
+    }
+
+    if (nodeIdx2 === 0) {
+      logger.section("ĐỆ QUY TIẾN TÌM ĐẠO HÀM m_k (p = 2, từ mốc x₁)");
+      logger.formula(`$$m_1 = ${fmtNum(b1)} \\;(\\text{điều kiện biên tại } x_1), \\quad m_{k+1} = \\frac{2(y_{k+1}-y_k)}{h_k} - m_k$$`);
+    } else if (nodeIdx2 === nNodes - 1) {
+      logger.section(`ĐỆ QUY LÙI TÌM ĐẠO HÀM m_k (p = 2, từ mốc x_${nNodes})`);
+      logger.formula(`$$m_n = ${fmtNum(b1)} \\;(\\text{điều kiện biên tại } x_n), \\quad m_k = \\frac{2(y_{k+1}-y_k)}{h_k} - m_{k+1}$$`);
+    } else {
+      logger.section(`ĐỆ QUY HAI CHIỀU TÌM ĐẠO HÀM m_k (p = 2, xuất phát từ mốc $${chosenNodeName}$)`);
+      logger.formula(`$$S'(${chosenNodeName}) = m_{${nodeIdx2 + 1}} = ${fmtNum(b1)} \\;(\\text{điều kiện biên})$$`);
+      logger.formula(`$$\\text{Chiều tiến: } m_{k+1} = \\frac{2(y_{k+1}-y_k)}{h_k} - m_k \\quad (k \\ge ${nodeIdx2 + 1})$$`);
+      logger.formula(`$$\\text{Chiều lùi: } m_k = \\frac{2(y_{k+1}-y_k)}{h_k} - m_{k+1} \\quad (k \\le ${nodeIdx2})$$`);
+    }
+
+    const mTable: Record<string, unknown>[] = [];
+    for (let i = 0; i < nNodes; i++) {
+      let source = "";
+      if (i === nodeIdx2) {
+        source = `Điều kiện biên tại $x_{${i + 1}}$`;
+      } else if (i > nodeIdx2) {
+        source = `Tính tiến: $\\frac{2 \\cdot ${fmtNum(Y[i] - Y[i - 1])}}{${fmtNum(h[i - 1])}} - (${fmtNum(m[i - 1])}) = ${fmtNum(m[i])}$`;
+      } else {
+        source = `Tính lùi: $\\frac{2 \\cdot ${fmtNum(Y[i + 1] - Y[i])}}{${fmtNum(h[i])}} - (${fmtNum(m[i + 1])}) = ${fmtNum(m[i])}$`;
+      }
       mTable.push({
-        "$k$": `$${k + 2}$`,
-        "$m_k = S'(x_k)$": `$${fmtNum(mk1)}$`,
-        "Nguồn": `$\\frac{2 \\cdot ${fmtNum(Y[k + 1] - Y[k])}}{${fmtNum(h[k])}} - ${fmtNum(m[k])} = ${fmtNum(mk1)}$`,
+        "$k$": `$${i + 1}$`,
+        "$m_k = S'(x_k)$": `$${fmtNum(m[i])}$`,
+        "Nguồn": source,
       });
     }
     logger.table(mTable);
@@ -211,7 +272,7 @@ export function runSmoothingSpline(
     for (let k = 0; k < intervals; k++) {
       const ak = (m[k + 1] - m[k]) / (2 * h[k]);
       const bk = (m[k] * X[k + 1] - m[k + 1] * X[k]) / h[k];
-      const ck = (-m[k] * X[k + 1] ** 2 + m[k + 1] * X[k] ** 2) / (2 * h[k]) + Y[k] + m[k] * h[k] / 2;
+      const ck = (-m[k] * X[k + 1] ** 2 + m[k + 1] * X[k] ** 2) / (2 * h[k]) + Y[k] + (m[k] * h[k]) / 2;
       aArr.push(ak); bArr.push(bk); cArr.push(ck);
       coefTable.push({
         "$k$": `$${k + 1}$`,
@@ -244,57 +305,115 @@ export function runSmoothingSpline(
   }
 
   // ── p = 3: Spline bậc 3 với thuật toán Thomas ───────────
-  logger.section("HỆ PHƯƠNG TRÌNH BA ĐƯỜNG CHÉO (p = 3)");
-  logger.formula(
-    `$$\\frac{h_k}{6}\\alpha_k + \\frac{h_k+h_{k+1}}{3}\\alpha_{k+1} + \\frac{h_{k+1}}{6}\\alpha_{k+2} = \\frac{y_{k+2}-y_{k+1}}{h_{k+1}} - \\frac{y_{k+1}-y_k}{h_k}, \\quad k=1,\\ldots,n-2$$`,
-  );
-  logger.info(`Điều kiện biên: $\\alpha_1 = ${fmtNum(b1)}$, $\\alpha_n = ${fmtNum(b2)}$. Giải cho $\\alpha_2, \\ldots, \\alpha_{n-1}$.`);
+  let alpha: number[] = [];
 
-  // eqCount = nNodes - 2 ẩn số (alpha[1..nNodes-2])
-  const eqCount = nNodes - 2;
-  const lowerArr: number[] = Array(eqCount).fill(0);
-  const diagArr: number[] = Array(eqCount).fill(0);
-  const upperArr: number[] = Array(eqCount).fill(0);
-  const rhsArr: number[] = Array(eqCount).fill(0);
+  if (boundaryType3 === "second") {
+    // Dạng 1: Biên đạo hàm cấp 2: S''(x₁) = b₁, S''(xₙ) = b₂
+    logger.section("HỆ PHƯƠNG TRÌNH BA ĐƯỜNG CHÉO (p = 3, BIÊN S'')");
+    logger.formula(
+      `$$\\frac{h_k}{6}\\alpha_k + \\frac{h_k+h_{k+1}}{3}\\alpha_{k+1} + \\frac{h_{k+1}}{6}\\alpha_{k+2} = \\frac{y_{k+2}-y_{k+1}}{h_{k+1}} - \\frac{y_{k+1}-y_k}{h_k}, \\quad k=1,\\ldots,n-2$$`,
+    );
+    logger.info(`Điều kiện biên cấp hai: $\\alpha_1 = S''(x_1) = ${fmtNum(b1)}$, $\\alpha_n = S''(x_n) = ${fmtNum(b2)}$. Giải cho $\\alpha_2, \\ldots, \\alpha_{n-1}$.`);
 
-  for (let eq = 0; eq < eqCount; eq++) {
-    const hk = h[eq], hk1 = h[eq + 1];
-    diagArr[eq] = (hk + hk1) / 3;
-    if (eq > 0) lowerArr[eq] = hk / 6;
-    if (eq < eqCount - 1) upperArr[eq] = hk1 / 6;
+    const eqCount = nNodes - 2;
+    const lowerArr: number[] = Array(eqCount).fill(0);
+    const diagArr: number[] = Array(eqCount).fill(0);
+    const upperArr: number[] = Array(eqCount).fill(0);
+    const rhsArr: number[] = Array(eqCount).fill(0);
 
-    let rVal = (Y[eq + 2] - Y[eq + 1]) / hk1 - (Y[eq + 1] - Y[eq]) / hk;
-    if (eq === 0) rVal -= (hk / 6) * b1;
-    if (eq === eqCount - 1) rVal -= (hk1 / 6) * b2;
-    rhsArr[eq] = rVal;
+    for (let eq = 0; eq < eqCount; eq++) {
+      const hk = h[eq], hk1 = h[eq + 1];
+      diagArr[eq] = (hk + hk1) / 3;
+      if (eq > 0) lowerArr[eq] = hk / 6;
+      if (eq < eqCount - 1) upperArr[eq] = hk1 / 6;
+
+      let rVal = (Y[eq + 2] - Y[eq + 1]) / hk1 - (Y[eq + 1] - Y[eq]) / hk;
+      if (eq === 0) rVal -= (hk / 6) * b1;
+      if (eq === eqCount - 1) rVal -= (hk1 / 6) * b2;
+      rhsArr[eq] = rVal;
+    }
+
+    const sysTable: Record<string, unknown>[] = [];
+    for (let eq = 0; eq < eqCount; eq++) {
+      sysTable.push({
+        "PT": `$${eq + 1}$`,
+        [`$\\alpha_{${eq + 1}}$`]: eq > 0 ? `$${fmtNum(lowerArr[eq])}$` : "biên",
+        [`$\\alpha_{${eq + 2}}$`]: `$${fmtNum(diagArr[eq])}$`,
+        [`$\\alpha_{${eq + 3}}$`]: eq < eqCount - 1 ? `$${fmtNum(upperArr[eq])}$` : "biên",
+        "Vế phải": `$${fmtNum(rhsArr[eq])}$`,
+      });
+    }
+    logger.table(sysTable);
+
+    logger.section("THUẬT TOÁN THOMAS — BẢNG ĐẠO HÀM CẤP HAI");
+    let alphaInner: number[];
+    try {
+      alphaInner = solveThomas(lowerArr, diagArr, upperArr, rhsArr);
+    } catch (e) {
+      logger.error(`Hệ ba đường chéo suy biến: ${(e as Error).message}`);
+      return;
+    }
+    alpha = [b1, ...alphaInner, b2];
+  } else {
+    // Dạng 2: Clamped Spline (Biên đạo hàm cấp 1: S'(x₁) = b₁, S'(xₙ) = b₂)
+    logger.section("HỆ PHƯƠNG TRÌNH BA ĐƯỜNG CHÉO (p = 3, CLAMPED SPLINE S')");
+    logger.formula(`$$\\text{Biên } x_1: \\quad \\frac{h_1}{3}\\alpha_1 + \\frac{h_1}{6}\\alpha_2 = \\frac{y_2 - y_1}{h_1} - S'(x_1)$$`);
+    logger.formula(`$$\\text{Mốc trong: } \\quad \\frac{h_k}{6}\\alpha_k + \\frac{h_k+h_{k+1}}{3}\\alpha_{k+1} + \\frac{h_{k+1}}{6}\\alpha_{k+2} = \\frac{y_{k+2}-y_{k+1}}{h_{k+1}} - \\frac{y_{k+1}-y_k}{h_k}$$`);
+    logger.formula(`$$\\text{Biên } x_n: \\quad \\frac{h_{n-1}}{6}\\alpha_{n-1} + \\frac{h_{n-1}}{3}\\alpha_n = S'(x_n) - \\frac{y_n - y_{n-1}}{h_{n-1}}$$`);
+    logger.info(`Điều kiện kẹp biên cấp một: $S'(x_1) = ${fmtNum(b1)}$, $S'(x_n) = ${fmtNum(b2)}$. Hệ gồm $n = ${nNodes}$ phương trình giải cho $\\alpha_1, \\dots, \\alpha_n$.`);
+
+    const eqCount = nNodes;
+    const lowerArr: number[] = Array(eqCount).fill(0);
+    const diagArr: number[] = Array(eqCount).fill(0);
+    const upperArr: number[] = Array(eqCount).fill(0);
+    const rhsArr: number[] = Array(eqCount).fill(0);
+
+    // PT 0: Biên tại x_1
+    diagArr[0] = h[0] / 3;
+    upperArr[0] = h[0] / 6;
+    rhsArr[0] = (Y[1] - Y[0]) / h[0] - b1;
+
+    // PT 1 .. n-2: Mốc trong
+    for (let k = 1; k < nNodes - 1; k++) {
+      const hk_prev = h[k - 1];
+      const hk = h[k];
+      lowerArr[k] = hk_prev / 6;
+      diagArr[k] = (hk_prev + hk) / 3;
+      upperArr[k] = hk / 6;
+      rhsArr[k] = (Y[k + 1] - Y[k]) / hk - (Y[k] - Y[k - 1]) / hk_prev;
+    }
+
+    // PT n-1: Biên tại x_n
+    const lastH = h[nNodes - 2];
+    lowerArr[nNodes - 1] = lastH / 6;
+    diagArr[nNodes - 1] = lastH / 3;
+    rhsArr[nNodes - 1] = b2 - (Y[nNodes - 1] - Y[nNodes - 2]) / lastH;
+
+    const sysTable: Record<string, unknown>[] = [];
+    for (let eq = 0; eq < eqCount; eq++) {
+      sysTable.push({
+        "PT": `$${eq + 1}$`,
+        [`$\\alpha_{${eq}}$`]: eq > 0 ? `$${fmtNum(lowerArr[eq])}$` : "—",
+        [`$\\alpha_{${eq + 1}}$`]: `$${fmtNum(diagArr[eq])}$`,
+        [`$\\alpha_{${eq + 2}}$`]: eq < eqCount - 1 ? `$${fmtNum(upperArr[eq])}$` : "—",
+        "Vế phải": `$${fmtNum(rhsArr[eq])}$`,
+      });
+    }
+    logger.table(sysTable);
+
+    logger.section("THUẬT TOÁN THOMAS — BẢNG ĐẠO HÀM CẤP HAI");
+    try {
+      alpha = solveThomas(lowerArr, diagArr, upperArr, rhsArr);
+    } catch (e) {
+      logger.error(`Hệ ba đường chéo suy biến: ${(e as Error).message}`);
+      return;
+    }
   }
 
-  // Log hệ phương trình
-  const sysTable: Record<string, unknown>[] = [];
-  for (let eq = 0; eq < eqCount; eq++) {
-    sysTable.push({
-      "PT": `$${eq + 1}$`,
-      [`$\\alpha_{${eq + 1}}$`]: eq > 0 ? `$${fmtNum(lowerArr[eq])}$` : "biên",
-      [`$\\alpha_{${eq + 2}}$`]: `$${fmtNum(diagArr[eq])}$`,
-      [`$\\alpha_{${eq + 3}}$`]: eq < eqCount - 1 ? `$${fmtNum(upperArr[eq])}$` : "biên",
-      "Vế phải": `$${fmtNum(rhsArr[eq])}$`,
-    });
-  }
-  logger.table(sysTable);
-
-  logger.section("THUẬT TOÁN THOMAS — BẢNG ĐẠO HÀM CẤP HAI");
-  let alphaInner: number[];
-  try {
-    alphaInner = solveThomas(lowerArr, diagArr, upperArr, rhsArr);
-  } catch (e) {
-    logger.error(`Hệ ba đường chéo suy biến: ${(e as Error).message}`);
-    return;
-  }
-  const alpha: number[] = [b1, ...alphaInner, b2];
   const alphaTable = alpha.map((a, i) => ({
     "$k$": `$${i + 1}$`,
     "$\\alpha_k = S''(x_k)$": `$${fmtNum(a)}$`,
-    "Nguồn": i === 0 || i === nNodes - 1 ? "Điều kiện biên" : "Thuật toán Thomas",
+    "Nguồn": boundaryType3 === "second" && (i === 0 || i === nNodes - 1) ? "Điều kiện biên S''" : "Thuật toán Thomas",
   }));
   logger.table(alphaTable);
 

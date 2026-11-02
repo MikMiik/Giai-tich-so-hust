@@ -12,7 +12,10 @@ import { runLagrangeInterpolation } from "@/lib/algorithms/lagrange-interpolatio
 import { runNewtonForwardInterpolation } from "@/lib/algorithms/newton-forward-interpolation";
 import { runNewtonBackwardInterpolation } from "@/lib/algorithms/newton-backward-interpolation";
 import { runNewtonUniformForward } from "@/lib/algorithms/newton-uniform-forward";
-import { runGaussBackwardInterpolation, runGaussForwardInterpolation } from "@/lib/algorithms/gauss-central";
+import {
+  runGaussBackwardInterpolation,
+  runGaussForwardInterpolation,
+} from "@/lib/algorithms/gauss-central";
 import { runStirlingInterpolation } from "@/lib/algorithms/stirling-interpolation";
 import { runBesselInterpolation } from "@/lib/algorithms/bessel-interpolation";
 import { runLeastSquares } from "@/lib/algorithms/least-squares";
@@ -48,7 +51,8 @@ import type { AlgoConfig, AlgorithmKey, Logger } from "@/types/solver";
 export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   "isolate-roots": {
     title: "Bán Kính & Khoảng Cách Ly",
-    subtitle: "Giới hạn nghiệm và tách các khoảng chứa 1 nghiệm — Isolate Roots",
+    subtitle:
+      "Giới hạn nghiệm và tách các khoảng chứa 1 nghiệm — Isolate Roots",
     icon: "🔍",
     defaultValues: {
       coeffs: "1 0 -1 -2",
@@ -150,7 +154,8 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   },
   "poly-product-linear": {
     title: "Tích Nhiều Đa Thức",
-    subtitle: "Khai triển P(x) = ∏(x - c_k) bằng bảng nhân dồn — Product of Polynomials",
+    subtitle:
+      "Khai triển P(x) = ∏(x - c_k) bằng bảng nhân dồn — Product of Polynomials",
     icon: "∏",
     defaultValues: {
       cList: "1.2 1.5 1.7 2.1",
@@ -159,7 +164,8 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   },
   "lagrange-interpolation": {
     title: "Nội Suy Lagrange",
-    subtitle: "Tìm đa thức nội suy P_n(x) qua n+1 điểm mốc — Lagrange Interpolation",
+    subtitle:
+      "Tìm đa thức nội suy P_n(x) qua n+1 điểm mốc — Lagrange Interpolation",
     icon: "𝓛",
     defaultValues: {
       xList: "1.2 1.5 1.7 1.8 2.1 2.3",
@@ -170,7 +176,8 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   },
   "newton-forward-interpolation": {
     title: "Nội Suy Newton Tiến",
-    subtitle: "Tìm đa thức P_n(x) qua bảng tỷ sai phân (mốc bất kỳ) — Newton Forward",
+    subtitle:
+      "Tìm đa thức P_n(x) qua bảng tỷ sai phân (mốc bất kỳ) — Newton Forward",
     icon: "∇",
     defaultValues: {
       xList: "1.2 1.5 1.7 1.9 2.1 2.4",
@@ -181,7 +188,8 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   },
   "newton-backward-interpolation": {
     title: "Nội Suy Newton Lùi",
-    subtitle: "Tìm đa thức P_n(x) qua bảng tỷ sai phân (đường chéo đáy) — Newton Backward",
+    subtitle:
+      "Tìm đa thức P_n(x) qua bảng tỷ sai phân (đường chéo đáy) — Newton Backward",
     icon: "Δ",
     defaultValues: {
       xList: "2.2 2.3 2.6 2.7 3.0 3.2",
@@ -192,7 +200,8 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   },
   "newton-uniform-forward": {
     title: "Nội Suy Newton Tiến (Cách Đều)",
-    subtitle: "Bảng sai phân tiến Δᵏy, biến chuẩn hóa t = (x−x₀)/h — Newton Forward Uniform",
+    subtitle:
+      "Bảng sai phân tiến Δᵏy, biến chuẩn hóa t = (x−x₀)/h — Newton Forward Uniform",
     icon: "Δ↑",
     defaultValues: {
       mode: "algo1",
@@ -229,8 +238,9 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
     run: runGaussBackwardInterpolation,
   },
   "stirling-interpolation": {
-    title: "Nội Suy Sterling (Stirling)",
-    subtitle: "Nội suy trung tâm: tự trích xuất 2m+1 mốc tối ưu quanh x* và tách chẵn/lẻ",
+    title: "Nội Suy Sterling",
+    subtitle:
+      "Nội suy trung tâm: tự trích xuất 2m+1 mốc tối ưu quanh x* và tách chẵn/lẻ",
     icon: "St",
     defaultValues: {
       xList: "1.3 1.4 1.5 1.6 1.7 1.8 1.9",
@@ -242,7 +252,8 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   },
   "bessel-interpolation": {
     title: "Nội Suy Bessel",
-    subtitle: "Nội suy trung tâm: tự trích xuất 2m mốc tối ưu quanh [x₀, x₁] và tách chẵn/lẻ",
+    subtitle:
+      "Nội suy trung tâm: tự trích xuất 2m mốc tối ưu quanh [x₀, x₁] và tách chẵn/lẻ",
     icon: "Be",
     defaultValues: {
       xList: "-2 -1 0 1 2 3",
@@ -254,7 +265,8 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   },
   "least-squares": {
     title: "Bình Phương Tối Thiểu",
-    subtitle: "Xấp xỉ hàm theo sai số bình phương tối thiểu: tuyến tính, mũ, lũy thừa, logarit",
+    subtitle:
+      "Xấp xỉ hàm theo sai số bình phương tối thiểu: tuyến tính, mũ, lũy thừa, logarit",
     icon: "LS",
     defaultValues: {
       fitType: "general",
@@ -266,22 +278,27 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   },
   "smoothing-spline": {
     title: "Hàm Ghép Trơn",
-    subtitle: "Dựng spline bậc p = 1…4 với điều kiện trơn tại các mốc",
+    subtitle: "Dựng spline bậc p = 1…3 với điều kiện trơn tại các mốc",
     icon: "Sp",
     defaultValues: {
       degree: "3",
       xList: "0 1 2 3",
       yList: "0 1 0 1",
+      boundaryPos2: "x1",
+      boundaryNode2: "1",
+      boundaryType3: "second",
+      boundaryVal1: "0",
+      boundaryVal2: "0",
       boundary1: "0",
       boundary2: "0",
-      boundary3: "0",
       xVal: "1.5",
     },
     run: runSmoothingSpline,
   },
   "extract-equidistant-nodes": {
     title: "Trích Xuất k Mốc Cách Đều",
-    subtitle: "Trích xuất k mốc nội suy tối ưu quanh điểm x̄ từ bảng dữ liệu lớn",
+    subtitle:
+      "Trích xuất k mốc nội suy tối ưu quanh điểm x̄ từ bảng dữ liệu lớn",
     icon: "✂️",
     defaultValues: {
       xList: "0.00 0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00",
@@ -293,7 +310,8 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   },
   "inverse-isolation": {
     title: "Khoảng Cách Ly (Nội Suy Ngược)",
-    subtitle: "Tìm các khoảng (xᵢ, xᵢ₊₁) chứa nghiệm f(x) = ȳ — Isolation Intervals",
+    subtitle:
+      "Tìm các khoảng (xᵢ, xᵢ₊₁) chứa nghiệm f(x) = ȳ — Isolation Intervals",
     icon: "[]",
     defaultValues: {
       xList: "0 1 2 3 4 5",
@@ -304,7 +322,8 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   },
   "monotone-intervals": {
     title: "Khoảng Đơn Điệu",
-    subtitle: "Tách bảng dữ liệu thành các đoạn tăng hoặc giảm — Monotone Intervals",
+    subtitle:
+      "Tách bảng dữ liệu thành các đoạn tăng hoặc giảm — Monotone Intervals",
     icon: "↗↘",
     defaultValues: {
       xList: "0 1 2 3 4 5",
@@ -314,7 +333,8 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
   },
   "inverse-newton-forward": {
     title: "Nội Suy Ngược (Hàm Ngược)",
-    subtitle: "Đổi vai Y↔X rồi Newton tiến, Horner tại ȳ — Inverse Function Method",
+    subtitle:
+      "Đổi vai Y↔X rồi Newton tiến, Horner tại ȳ — Inverse Function Method",
     icon: "P⁻¹",
     defaultValues: {
       xList: "0 1 2 3 4 5",
@@ -326,8 +346,8 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
     run: runInverseNewtonForward,
   },
   "inverse-newton-iteration": {
-    title: "Nội Suy Ngược (Lặp Newton Tiến)",
-    subtitle: "Lặp t = φ(t) từ sai phân tiến mốc cách đều — Inverse Iteration",
+    title: "Nội Suy Ngược (Phương Pháp Lặp)",
+    subtitle: "Lặp t = φ(t) từ sai phân Newton tiến / lùi / quanh tâm — Inverse Iteration",
     icon: "t*",
     defaultValues: {
       xList: "1.0 1.2 1.4 1.6 1.8",
@@ -336,6 +356,7 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
       eps: "1e-4",
       k: "",
       nodeCount: "",
+      iterMode: "all",
     },
     run: runInverseNewtonIteration,
   },

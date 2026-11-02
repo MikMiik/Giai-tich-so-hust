@@ -913,15 +913,29 @@ function LeastSquaresFields({ onKeyDown }: FieldProps) {
 }
 
 function SmoothingSplineFields({ onKeyDown }: FieldProps) {
+  const [degree, setDegree] = useState<string>("3");
+  const [boundaryNode2, setBoundaryNode2] = useState<string>("1");
+  const [boundaryType3, setBoundaryType3] = useState<string>("second");
+
   return (
     <>
-      <div className="matrix-help">Spline dùng điều kiện biên tại mốc trái. Với bậc p, chỉ dùng các đạo hàm từ cấp 1 đến p − 1.</div>
+      <div className="matrix-help">
+        Hàm ghép trơn (Spline) cấp p (p ≤ 3) đi qua tập dữ liệu với các điều kiện liên tục đạo hàm và điều kiện biên.
+      </div>
       <div className="form-section-title">Dữ liệu spline</div>
       <div className="form-row">
         <div className="form-group">
           <label className="form-label" htmlFor="in-splineDegree">Bậc p</label>
-          <select className="form-input" id="in-splineDegree" name="degree">
-            <option value="1">1 — tuyến tính</option><option value="2">2 — bậc hai</option><option value="3">3 — bậc ba</option><option value="4">4 — bậc bốn</option>
+          <select
+            className="form-input"
+            id="in-splineDegree"
+            name="degree"
+            value={degree}
+            onChange={(e) => setDegree(e.target.value)}
+          >
+            <option value="1">1 — tuyến tính</option>
+            <option value="2">2 — bậc hai</option>
+            <option value="3">3 — bậc ba</option>
           </select>
         </div>
         <div className="form-group">
@@ -937,12 +951,103 @@ function SmoothingSplineFields({ onKeyDown }: FieldProps) {
         <label className="form-label" htmlFor="in-splineYList">Dãy Y</label>
         <input className="form-input" id="in-splineYList" name="yList" type="text" spellCheck={false} onKeyDown={onKeyDown} />
       </div>
-      <div className="form-section-title">Điều kiện biên tại x₁</div>
-      <div className="form-row">
-        <div className="form-group"><label className="form-label" htmlFor="in-boundary1">S′(x₁)</label><input className="form-input" id="in-boundary1" name="boundary1" type="text" onKeyDown={onKeyDown} /></div>
-        <div className="form-group"><label className="form-label" htmlFor="in-boundary2">S″(x₁)</label><input className="form-input" id="in-boundary2" name="boundary2" type="text" onKeyDown={onKeyDown} /></div>
-        <div className="form-group"><label className="form-label" htmlFor="in-boundary3">S‴(x₁)</label><input className="form-input" id="in-boundary3" name="boundary3" type="text" onKeyDown={onKeyDown} /></div>
-      </div>
+
+      {degree === "1" && (
+        <div className="form-hint" style={{ marginTop: 8 }}>
+          Spline tuyến tính (bậc 1) nối từng đoạn thẳng qua các mốc, không cần điều kiện biên.
+        </div>
+      )}
+
+      {degree === "2" && (
+        <>
+          <div className="form-section-title">Điều kiện biên (Spline bậc hai)</div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label" htmlFor="in-boundaryNode2">
+                Chỉ số mốc <code>i</code> cho điều kiện biên
+              </label>
+              <input
+                className="form-input"
+                id="in-boundaryNode2"
+                name="boundaryNode2"
+                type="text"
+                placeholder="1 (mốc x₁), 2 (mốc x₂), hoặc xn..."
+                value={boundaryNode2}
+                onChange={(e) => setBoundaryNode2(e.target.value)}
+                onKeyDown={onKeyDown}
+              />
+              <div className="form-hint">
+                Nhập số <code>i</code> (1 là x₁, 2 là x₂, 3 là x₃... hoặc xn là mốc cuối).
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="in-splineBoundaryVal1">
+                Giá trị <code>S′(x{boundaryNode2 ? boundaryNode2.replace(/^x/i, "") : "i"})</code>
+              </label>
+              <input
+                className="form-input"
+                id="in-splineBoundaryVal1"
+                name="boundaryVal1"
+                type="text"
+                onKeyDown={onKeyDown}
+              />
+              <div className="form-hint">
+                Thuật toán tự động đệ quy 2 chiều (tiến về cuối bảng và lùi về đầu bảng).
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {degree === "3" && (
+        <>
+          <div className="form-section-title">Điều kiện biên (Spline bậc ba)</div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="in-boundaryType3">Dạng điều kiện biên</label>
+            <select
+              className="form-input"
+              id="in-boundaryType3"
+              name="boundaryType3"
+              value={boundaryType3}
+              onChange={(e) => setBoundaryType3(e.target.value)}
+            >
+              <option value="second">Đạo hàm cấp 2 tại 2 đầu: S″(x₁) và S″(xₙ) (Spline tự nhiên khi = 0)</option>
+              <option value="clamped">Đạo hàm cấp 1 tại 2 đầu (Clamped): S′(x₁) và S′(xₙ)</option>
+            </select>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label" htmlFor="in-splineBoundaryVal1">
+                {boundaryType3 === "second" ? <code>S″(x₁)</code> : <code>S′(x₁)</code>}
+              </label>
+              <input
+                className="form-input"
+                id="in-splineBoundaryVal1"
+                name="boundaryVal1"
+                type="text"
+                onKeyDown={onKeyDown}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="in-splineBoundaryVal2">
+                {boundaryType3 === "second" ? <code>S″(xₙ)</code> : <code>S′(xₙ)</code>}
+              </label>
+              <input
+                className="form-input"
+                id="in-splineBoundaryVal2"
+                name="boundaryVal2"
+                type="text"
+                onKeyDown={onKeyDown}
+              />
+            </div>
+          </div>
+          <div className="form-hint">
+            {boundaryType3 === "second"
+              ? "Nhập 0 cho cả 2 mút để tìm Spline tự nhiên (Natural Spline)."
+              : "Điều kiện biên kẹp (Clamped Spline) khống chế độ dốc tiếp tuyến ở 2 đầu."}
+          </div>
+        </>
+      )}
     </>
   );
 }
@@ -1186,6 +1291,20 @@ function InverseInterpolationFields({
             </div>
           </div>
           <div className="form-group">
+            <label className="form-label" htmlFor="in-iterMode">
+              Phương pháp lặp
+            </label>
+            <select className="form-input" id="in-iterMode" name="iterMode">
+              <option value="all">Tất cả phương pháp (Quanh tâm, Newton lùi, Newton tiến) (Khuyên dùng)</option>
+              <option value="central">Newton tiến / lùi (quanh tâm)</option>
+              <option value="backward">Newton lùi (từ mốc phải xₖ₊₁)</option>
+              <option value="forward">Newton tiến (từ mốc trái xₖ)</option>
+            </select>
+            <div className="form-hint">
+              Mặc định so sánh cả 3 phương pháp và lập bảng tổng hợp đối chiếu.
+            </div>
+          </div>
+          <div className="form-group">
             <label className="form-label" htmlFor="in-iterNodeCount">
               Số mốc cần lấy <code>n</code> (Tùy chọn)
             </label>
@@ -1199,7 +1318,7 @@ function InverseInterpolationFields({
               onKeyDown={onKeyDown}
             />
             <div className="form-hint">
-              Nhập n ≥ 2 để trích xuất n mốc cách đều quanh khoảng cách ly, giảm bảng sai phân.
+              Nhập n ≥ 2 để trích xuất n mốc cách đều (giúp đa thức đạt bậc n−1 đầy đủ và tránh tràn số bảng sai phân).
             </div>
           </div>
         </>

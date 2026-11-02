@@ -612,8 +612,16 @@ export function runInverseNewtonForward(params: Record<string, string>, logger: 
   logger.result(`$$\\bar{x} = P(\\bar{y}) = ${fmtNum(p)}$$`);
 }
 
-/** Giải một khoảng cách ly kGlobal và ghi log kết quả. */
-function solveOneIterationInterval(
+export interface IterationResult {
+  methodName: string;
+  usedNodesDesc: string;
+  converged: boolean;
+  xBar: number;
+  iters: number;
+}
+
+/** Giải bằng Newton tiến từ x_k */
+function solveOneForward(
   X: number[],
   Y: number[],
   yBar: number,
@@ -622,131 +630,317 @@ function solveOneIterationInterval(
   kGlobal: number,
   nodeCount: number | undefined,
   logger: Logger,
-  globalSolIdx: number,          // thứ tự nghiệm (1-based, để đánh section)
-  totalSolutions: number,        // tổng số khoảng cách ly
-): { converged: boolean; xBar: number } {
-  const SECTION_PREFIX = totalSolutions > 1 ? `[Nghiệm ${globalSolIdx}/${totalSolutions}] ` : "";
-
-  // --- Trích xuất mảng con nếu cần ---
+  prefix: string,
+): IterationResult {
   let workingX = X;
   let workingY = Y;
   let kLocal = kGlobal;
+  let usedDesc = `Toàn bộ ${X.length} mốc, từ $x_{${kGlobal}}$`;
 
   if (nodeCount !== undefined && nodeCount < X.length) {
-    const half = Math.floor((nodeCount - 1) / 2);
-    let idxStart = Math.max(0, kGlobal - half);
+    let idxStart = kGlobal;
     if (idxStart + nodeCount > X.length) idxStart = X.length - nodeCount;
     const idxEnd = idxStart + nodeCount;
-
-    logger.section(`${SECTION_PREFIX}TRÍCH XUẤT ${nodeCount} MỐC QUANH KHOẢNG CÁCH LY`);
-    logger.info(
-      `Lấy $n_{mốc} = ${nodeCount}$ mốc đối xứng quanh $x_k = ${fmtNum(X[kGlobal])}$: chỉ số $[${idxStart} \\dots ${idxEnd - 1}]$.`
-    );
     workingX = X.slice(idxStart, idxEnd);
     workingY = Y.slice(idxStart, idxEnd);
     kLocal = kGlobal - idxStart;
+    usedDesc = `$[${fmtNum(workingX[0])}, ${fmtNum(workingX[workingX.length - 1])}]$ (mốc ${idxStart}..${idxEnd - 1})`;
 
-    const subTable = workingX.map((xi, i) => ({
-      "$i_{sub}$": `$${i}$`,
-      "$i_{gốc}$": `$${idxStart + i}$`,
-      "$x_i$": i === kLocal || i === kLocal + 1 ? `**$${fmtNum(xi)}$**` : `$${fmtNum(xi)}$`,
-      "$y_i$": i === kLocal || i === kLocal + 1 ? `**$${fmtNum(workingY[i])}$**` : `$${fmtNum(workingY[i])}$`,
-    }));
-    logger.table(subTable);
-    logger.success(`Khoảng cách ly trong mảng con: $k_{sub} = ${kLocal}$, tức $[${fmtNum(workingX[kLocal])}, ${fmtNum(workingX[kLocal + 1])}]$.`);
+    logger.section(`${prefix}TRÍCH XUẤT ${nodeCount} MỐC TIẾN TỪ $x_k$`);
+    logger.info(`Lấy ${nodeCount} mốc tiến từ $x_{${kGlobal}} = ${fmtNum(X[kGlobal])}$: chỉ số $[${idxStart} \\dots ${idxEnd - 1}]$.`);
+    logger.table(
+      workingX.map((xi, i) => ({
+        "$i_{sub}$": `$${i}$`,
+        "$i_{gốc}$": `$${idxStart + i}$`,
+        "$x_i$": i === kLocal ? `**$${fmtNum(xi)}$**` : `$${fmtNum(xi)}$`,
+        "$y_i$": i === kLocal ? `**$${fmtNum(workingY[i])}$**` : `$${fmtNum(workingY[i])}$`,
+      }))
+    );
   }
 
   const deltaYk = workingY[kLocal + 1] - workingY[kLocal];
   if (Math.abs(deltaYk) < ZERO) {
-    logger.warn(`${SECTION_PREFIX}$\\Delta y_k = 0$, bỏ qua khoảng $[${fmtNum(X[kGlobal])}, ${fmtNum(X[kGlobal + 1])}]$.`);
-    return { converged: false, xBar: NaN };
+    logger.warn(`${prefix}$\\Delta y_k = 0$, không lập được công thức lặp tiến.`);
+    return { methodName: "Newton tiến", usedNodesDesc: usedDesc, converged: false, xBar: NaN, iters: 0 };
   }
 
-  // --- Tham số ---
-  logger.section(`${SECTION_PREFIX}THAM SỐ LẶP`);
-  logger.formula(
-    `$$h = ${fmtNum(h)},\\quad \\bar{y} = ${fmtNum(yBar)},\\quad \\varepsilon = ${fmtNum(eps)},\\quad k = ${kLocal}$$`
-  );
-  logger.formula(
-    `$$[x_k, x_{k+1}] = [${fmtNum(workingX[kLocal])}, ${fmtNum(workingX[kLocal + 1])}],\\quad t = \\frac{x - x_k}{h}$$`
-  );
+  logger.section(`${prefix}PHƯƠNG PHÁP NEWTON TIẾN (TỪ $x_k = ${fmtNum(workingX[kLocal])}$)`);
+  logger.formula(`$$h = ${fmtNum(h)},\\quad \\bar{y} = ${fmtNum(yBar)},\\quad \\varepsilon = ${fmtNum(eps)},\\quad k = ${kLocal}$$`);
+  logger.formula(`$$x_{\\text{base}} = x_k = ${fmtNum(workingX[kLocal])},\\quad t = \\frac{x - x_k}{h}$$`);
 
-  if (!(nodeCount !== undefined && nodeCount < X.length)) {
-    logDataTable(logger, workingX, workingY);
-  }
-
-  // --- Bảng sai phân ---
-  logger.section(`${SECTION_PREFIX}BẢNG SAI PHÂN TIẾN`);
   const delta = buildForwardDifferenceTable(workingY);
   const n = workingX.length - 1;
-  logger.table(
-    workingX.map((x, i) => {
-      const row: Record<string, unknown> = {
-        "$i$": `$${i}$`,
-        "$x_i$": `$${fmtNum(x)}$`,
-        "$y_i$": `$${fmtNum(workingY[i])}$`,
-      };
-      for (let order = 1; order <= n; order++) {
-        row[`$\\Delta^{${order}}y$`] = i <= n - order ? `$${fmtNum(delta[i][order])}$` : "—";
-      }
-      return row;
-    }),
-  );
-
   const maxOrder = n - kLocal;
   const deltasFromK = Array.from({ length: maxOrder + 1 }, (_, order) => delta[kLocal][order]);
-  logger.section(`${SECTION_PREFIX}SAI PHÂN XUẤT PHÁT TỪ MỐC $x_k$`);
-  logger.table(
-    deltasFromK.map((value, order) => ({
-      "Cấp": order === 0 ? "$y_k$" : `$\\Delta^{${order}} y_k$`,
-      "Giá trị": `$${fmtNum(value)}$`,
-    })),
-  );
 
-  // --- Lặp ---
   const t0 = (yBar - workingY[kLocal]) / deltasFromK[1];
   const tol = eps / Math.abs(h);
-  logger.section(`${SECTION_PREFIX}QUÁ TRÌNH LẶP TÌM THAM SỐ $t$`);
-  logger.formula(
-    `$$t_0 = \\frac{\\bar{y} - y_k}{\\Delta y_k} = \\frac{${fmtNum(yBar)} - ${fmtNum(workingY[kLocal])}}{${fmtNum(deltasFromK[1])}} = ${fmtNum(t0)}$$`
-  );
-  logger.formula(
-    "$$S(t) = \\sum_{m=2}^{n-k} \\frac{\\Delta^m y_k}{m!} \\prod_{r=0}^{m-1}(t-r), \\qquad t_{j+1} = \\frac{\\bar{y} - y_k - S(t_j)}{\\Delta y_k}$$"
-  );
-  logger.formula(`$$\\text{Dừng khi } |t_{j+1} - t_j| < \\varepsilon / h = ${fmtNum(tol)}$$`);
+  logger.formula(`$$t_0 = \\frac{\\bar{y} - y_k}{\\Delta y_k} = \\frac{${fmtNum(yBar)} - ${fmtNum(workingY[kLocal])}}{${fmtNum(deltasFromK[1])}} = ${fmtNum(t0)}$$`);
+  logger.formula("$$S(t) = \\sum_{m=2}^{p} \\frac{\\Delta^m y_k}{m!} \\prod_{r=0}^{m-1}(t-r), \\qquad t_{l+1} = \\frac{\\bar{y} - y_k - S(t_l)}{\\Delta y_k}$$");
+  logger.formula(`$$\\text{Dừng khi } |t_{l+1} - t_l| < \\varepsilon / h = ${fmtNum(tol)}$$`);
 
   const rows: Record<string, unknown>[] = [];
   let t = t0;
   let next = t0;
   let converged = false;
-  for (let iter = 0; iter < MAX_ITERS; iter++) {
+  let iter = 0;
+  for (; iter < MAX_ITERS; iter++) {
     const s = evalAuxiliaryS(deltasFromK, t);
     next = (yBar - workingY[kLocal] - s) / deltasFromK[1];
     const diff = Math.abs(next - t);
     const stop = diff < tol;
     rows.push({
-      "$j$": `$${iter}$`,
-      "$t_j$": `$${fmtNum(t)}$`,
-      "$S(t_j)$": `$${fmtNum(s)}$`,
-      "$t_{j+1}$": `$${fmtNum(next)}$`,
+      "$l$": `$${iter}$`,
+      "$t_l$": `$${fmtNum(t)}$`,
+      "$S(t_l)$": `$${fmtNum(s)}$`,
+      "$t_{l+1}$": `$${fmtNum(next)}$`,
       "$|\\Delta t|$": `$${fmtNum(diff)}$`,
       "So sánh": stop ? `$< ${fmtNum(tol)}$ ✅` : `$\\ge ${fmtNum(tol)}$`,
     });
-    if (stop) { converged = true; break; }
+    if (stop) { converged = true; iter++; break; }
     t = next;
   }
   logger.table(rows);
 
-  if (!converged) {
-    logger.warn(`${SECTION_PREFIX}Không hội tụ sau ${MAX_ITERS} vòng lặp. Thử tăng số mốc hoặc dùng nodeCount để thu hẹp bảng sai phân.`);
+  const xBar = workingX[kLocal] + next * h;
+  logger.result(`$$\\bar{x}_{\\text{tiến}} = x_k + t^* \\cdot h = ${fmtNum(workingX[kLocal])} + (${fmtNum(next)}) \\times ${fmtNum(h)} = ${fmtNum(xBar)}$$`);
+  return { methodName: "Newton tiến (từ $x_k$)", usedNodesDesc: usedDesc, converged, xBar, iters: iter };
+}
+
+/** Giải bằng Newton lùi từ x_{k+1} */
+function solveOneBackward(
+  X: number[],
+  Y: number[],
+  yBar: number,
+  eps: number,
+  h: number,
+  kGlobal: number,
+  nodeCount: number | undefined,
+  logger: Logger,
+  prefix: string,
+): IterationResult {
+  const uGlobal = kGlobal + 1;
+  let workingX = X;
+  let workingY = Y;
+  let uLocal = uGlobal;
+  let usedDesc = `Toàn bộ ${X.length} mốc, lùi từ $x_{${uGlobal}}$`;
+
+  if (nodeCount !== undefined && nodeCount < X.length) {
+    let idxEnd = uGlobal + 1;
+    let idxStart = idxEnd - nodeCount;
+    if (idxStart < 0) {
+      idxStart = 0;
+      idxEnd = nodeCount;
+    }
+    workingX = X.slice(idxStart, idxEnd);
+    workingY = Y.slice(idxStart, idxEnd);
+    uLocal = uGlobal - idxStart;
+    usedDesc = `$[${fmtNum(workingX[0])}, ${fmtNum(workingX[workingX.length - 1])}]$ (mốc ${idxStart}..${idxEnd - 1})`;
+
+    logger.section(`${prefix}TRÍCH XUẤT ${nodeCount} MỐC LÙI TỪ $x_{k+1}$`);
+    logger.info(`Lấy ${nodeCount} mốc lùi từ $x_{${uGlobal}} = ${fmtNum(X[uGlobal])}$: chỉ số $[${idxStart} \\dots ${idxEnd - 1}]$.`);
+    logger.table(
+      workingX.map((xi, i) => ({
+        "$i_{sub}$": `$${i}$`,
+        "$i_{gốc}$": `$${idxStart + i}$`,
+        "$x_i$": i === uLocal ? `**$${fmtNum(xi)}$**` : `$${fmtNum(xi)}$`,
+        "$y_i$": i === uLocal ? `**$${fmtNum(workingY[i])}$**` : `$${fmtNum(workingY[i])}$`,
+      }))
+    );
   }
 
-  const xBar = workingX[kLocal] + next * h;
-  logger.section(`${SECTION_PREFIX}KẾT QUẢ`);
-  logger.result(
-    `$$\\bar{x} = x_k + t_{j+1} \\cdot h = ${fmtNum(workingX[kLocal])} + (${fmtNum(next)}) \\times ${fmtNum(h)} = ${fmtNum(xBar)}$$`
+  const delta = buildForwardDifferenceTable(workingY);
+  const n = workingX.length;
+  // Sai phân lùi tại mốc uLocal: nabla^j y_u = delta[uLocal - j][j]
+  const nabla: number[] = [];
+  for (let j = 0; j <= uLocal; j++) {
+    nabla.push(delta[uLocal - j][j]);
+  }
+
+  if (nabla.length < 2 || Math.abs(nabla[1]) < ZERO) {
+    logger.warn(`${prefix}$\\nabla y_{k+1} = 0$, không lập được công thức lặp lùi.`);
+    return { methodName: "Newton lùi", usedNodesDesc: usedDesc, converged: false, xBar: NaN, iters: 0 };
+  }
+
+  logger.section(`${prefix}PHƯƠNG PHÁP NEWTON LÙI (TỪ $x_{k+1} = ${fmtNum(workingX[uLocal])}$)`);
+  logger.formula(`$$h = ${fmtNum(h)},\\quad \\bar{y} = ${fmtNum(yBar)},\\quad \\varepsilon = ${fmtNum(eps)}$$`);
+  logger.formula(`$$x_{\\text{base}} = x_{k+1} = ${fmtNum(workingX[uLocal])},\\quad t = \\frac{x - x_{k+1}}{h} \\in [-1, 0]$$`);
+
+  // Bảng sai phân lùi
+  logger.table(
+    nabla.map((val, order) => ({
+      "Cấp": order === 0 ? "$y_{k+1}$" : `$\\nabla^{${order}} y_{k+1}$`,
+      "Giá trị": `$${fmtNum(val)}$`,
+    }))
   );
-  return { converged, xBar };
+
+  const t0 = (yBar - nabla[0]) / nabla[1];
+  const tol = eps / Math.abs(h);
+  logger.formula(`$$t_0 = \\frac{\\bar{y} - y_{k+1}}{\\nabla y_{k+1}} = \\frac{${fmtNum(yBar)} - ${fmtNum(nabla[0])}}{${fmtNum(nabla[1])}} = ${fmtNum(t0)}$$`);
+  logger.formula("$$S(t) = \\sum_{m=2}^{p} \\frac{\\nabla^m y_{k+1}}{m!} \\prod_{r=0}^{m-1}(t+r), \\qquad t_{l+1} = \\frac{\\bar{y} - y_{k+1} - S(t_l)}{\\nabla y_{k+1}}$$");
+  logger.formula(`$$\\text{Dừng khi } |t_{l+1} - t_l| < \\varepsilon / h = ${fmtNum(tol)}$$`);
+
+  const rows: Record<string, unknown>[] = [];
+  let t = t0;
+  let next = t0;
+  let converged = false;
+  let iter = 0;
+  for (; iter < MAX_ITERS; iter++) {
+    // tính S(t) cho lùi: prod_{r=0}^{m-1} (t + r)
+    let s = 0;
+    let w = t;
+    let fact = 1;
+    for (let m = 2; m < nabla.length; m++) {
+      w = w * (t + (m - 1));
+      fact = fact * m;
+      s += (nabla[m] * w) / fact;
+    }
+    next = (yBar - nabla[0] - s) / nabla[1];
+    const diff = Math.abs(next - t);
+    const stop = diff < tol;
+    rows.push({
+      "$l$": `$${iter}$`,
+      "$t_l$": `$${fmtNum(t)}$`,
+      "$S(t_l)$": `$${fmtNum(s)}$`,
+      "$t_{l+1}$": `$${fmtNum(next)}$`,
+      "$|\\Delta t|$": `$${fmtNum(diff)}$`,
+      "So sánh": stop ? `$< ${fmtNum(tol)}$ ✅` : `$\\ge ${fmtNum(tol)}$`,
+    });
+    if (stop) { converged = true; iter++; break; }
+    t = next;
+  }
+  logger.table(rows);
+
+  const xBar = workingX[uLocal] + next * h;
+  logger.result(`$$\\bar{x}_{\\text{lùi}} = x_{k+1} + t^* \\cdot h = ${fmtNum(workingX[uLocal])} + (${fmtNum(next)}) \\times ${fmtNum(h)} = ${fmtNum(xBar)}$$`);
+  return { methodName: "Newton lùi (từ $x_{k+1}$)", usedNodesDesc: usedDesc, converged, xBar, iters: iter };
+}
+
+/** Giải bằng Newton quanh tâm đối xứng quanh khoảng [x_k, x_{k+1}] */
+function solveOneCentral(
+  X: number[],
+  Y: number[],
+  yBar: number,
+  eps: number,
+  h: number,
+  kGlobal: number,
+  nodeCount: number | undefined,
+  logger: Logger,
+  prefix: string,
+): IterationResult {
+  const actualCount = nodeCount !== undefined ? Math.min(nodeCount, X.length) : X.length;
+  const half = Math.floor((actualCount - 1) / 2);
+  let idxStart = Math.max(0, kGlobal - half);
+  if (idxStart + actualCount > X.length) idxStart = X.length - actualCount;
+  const idxEnd = idxStart + actualCount;
+
+  const workingX = X.slice(idxStart, idxEnd);
+  const workingY = Y.slice(idxStart, idxEnd);
+  const kSub = kGlobal - idxStart;
+  const usedDesc = `$[${fmtNum(workingX[0])}, ${fmtNum(workingX[workingX.length - 1])}]$ (mốc ${idxStart}..${idxEnd - 1})`;
+
+  logger.section(`${prefix}TRÍCH XUẤT ${actualCount} MỐC QUANH TÂM $[x_k, x_{k+1}]$`);
+  logger.info(`Lấy ${actualCount} mốc đối xứng quanh $[${fmtNum(X[kGlobal])}, ${fmtNum(X[kGlobal + 1])}]$: chỉ số $[${idxStart} \\dots ${idxEnd - 1}]$.`);
+  logger.table(
+    workingX.map((xi, i) => ({
+      "$i_{sub}$": `$${i}$`,
+      "$i_{gốc}$": `$${idxStart + i}$`,
+      "$x_i$": i === kSub || i === kSub + 1 ? `**$${fmtNum(xi)}$**` : `$${fmtNum(xi)}$`,
+      "$y_i$": i === kSub || i === kSub + 1 ? `**$${fmtNum(workingY[i])}$**` : `$${fmtNum(workingY[i])}$`,
+    }))
+  );
+
+  // Thứ tự mốc s_m xung quanh kSub: 0, 1, -1, 2, -2, 3...
+  const sList: number[] = [];
+  const nodeIndices: number[] = [];
+  for (let step = 0; sList.length < actualCount; step++) {
+    if (step === 0) {
+      sList.push(0);
+      nodeIndices.push(kSub);
+    } else {
+      const pos = kSub + step;
+      if (pos < actualCount && sList.length < actualCount) {
+        sList.push(step);
+        nodeIndices.push(pos);
+      }
+      const neg = kSub - step;
+      if (neg >= 0 && sList.length < actualCount) {
+        sList.push(-step);
+        nodeIndices.push(neg);
+      }
+    }
+  }
+
+  // Bảng tỷ sai phân
+  const count = sList.length;
+  const nodes = sList;
+  const values = nodeIndices.map((idx) => workingY[idx]);
+  const divDiff = Array.from({ length: count }, () => Array(count).fill(0));
+  for (let i = 0; i < count; i++) divDiff[i][0] = values[i];
+  for (let j = 1; j < count; j++) {
+    for (let i = j; i < count; i++) {
+      divDiff[i][j] = (divDiff[i][j - 1] - divDiff[i - 1][j - 1]) / (nodes[i] - nodes[i - j]);
+    }
+  }
+  const c = Array.from({ length: count }, (_, j) => divDiff[j][j]);
+
+  if (Math.abs(c[1]) < ZERO) {
+    logger.warn(`${prefix}Hệ số $c_1 = 0$, không lập được công thức lặp quanh tâm.`);
+    return { methodName: "Newton quanh tâm", usedNodesDesc: usedDesc, converged: false, xBar: NaN, iters: 0 };
+  }
+
+  logger.section(`${prefix}PHƯƠNG PHÁP NEWTON TIẾN / LÙI (QUANH TÂM)`);
+  logger.formula(`$$x_0 = ${fmtNum(workingX[kSub])},\\quad t = \\frac{x - x_0}{h} \\in [0, 1]$$`);
+  logger.info(`Thứ tự mốc chuẩn hóa $s_m$: $[${sList.join(", ")}]$ tương ứng các điểm $X$: $[${nodeIndices.map((idx) => fmtNum(workingX[idx])).join(", ")}]$.`);
+
+  // Bảng hệ số c_m
+  logger.table(
+    c.map((val, m) => ({
+      "Bậc $m$": `$${m}$`,
+      "Mốc $s_m$": `$${sList[m]}$`,
+      "Hệ số $c_m$": `$${fmtNum(val)}$`,
+    }))
+  );
+
+  const t0 = (yBar - c[0]) / c[1];
+  const tol = eps / Math.abs(h);
+  logger.formula(`$$t_0 = \\frac{\\bar{y} - c_0}{c_1} = \\frac{${fmtNum(yBar)} - ${fmtNum(c[0])}}{${fmtNum(c[1])}} = ${fmtNum(t0)}$$`);
+  logger.formula("$$S(t) = \\sum_{m=2}^{p} c_m \\prod_{r=0}^{m-1} (t - s_r), \\qquad t_{l+1} = \\frac{\\bar{y} - c_0 - S(t_l)}{c_1}$$");
+  logger.formula(`$$\\text{Dừng khi } |t_{l+1} - t_l| < \\varepsilon / h = ${fmtNum(tol)}$$`);
+
+  const rows: Record<string, unknown>[] = [];
+  let t = t0;
+  let next = t0;
+  let converged = false;
+  let iter = 0;
+  for (; iter < MAX_ITERS; iter++) {
+    let s = 0;
+    for (let m = 2; m < count; m++) {
+      let prod = 1;
+      for (let r = 0; r < m; r++) {
+        prod *= t - nodes[r];
+      }
+      s += c[m] * prod;
+    }
+    next = (yBar - c[0] - s) / c[1];
+    const diff = Math.abs(next - t);
+    const stop = diff < tol;
+    rows.push({
+      "$l$": `$${iter}$`,
+      "$t_l$": `$${fmtNum(t)}$`,
+      "$S(t_l)$": `$${fmtNum(s)}$`,
+      "$t_{l+1}$": `$${fmtNum(next)}$`,
+      "$|\\Delta t|$": `$${fmtNum(diff)}$`,
+      "So sánh": stop ? `$< ${fmtNum(tol)}$ ✅` : `$\\ge ${fmtNum(tol)}$`,
+    });
+    if (stop) { converged = true; iter++; break; }
+    t = next;
+  }
+  logger.table(rows);
+
+  const xBar = workingX[kSub] + next * h;
+  logger.result(`$$\\bar{x}_{\\text{tâm}} = x_0 + t^* \\cdot h = ${fmtNum(workingX[kSub])} + (${fmtNum(next)}) \\times ${fmtNum(h)} = ${fmtNum(xBar)}$$`);
+  return { methodName: "Newton tiến / lùi (quanh tâm)", usedNodesDesc: usedDesc, converged, xBar, iters: iter };
 }
 
 export function runInverseNewtonIteration(params: Record<string, string>, logger: Logger): void {
@@ -818,9 +1012,15 @@ export function runInverseNewtonIteration(params: Record<string, string>, logger
     }
   }
 
+  // --- Parse iterMode ---
+  const iterMode = params.iterMode?.trim().toLowerCase() || "all";
+
   // --- Section tổng quan đầu vào ---
   logger.section("ĐẦU VÀO");
   logger.info(`Tổng số mốc: $N = ${X.length}$, bước lưới $h = ${fmtNum(h)}$, $\\bar{y} = ${fmtNum(yBar)}$, $\\varepsilon = ${fmtNum(eps)}$.`);
+  if (nodeCount !== undefined) {
+    logger.info(`Số mốc trích xuất yêu cầu: $n_{mốc} = ${nodeCount}$.`);
+  }
   if (found.length > 1) {
     logger.info(
       `Phát hiện $${found.length}$ khoảng cách ly: ` +
@@ -833,41 +1033,71 @@ export function runInverseNewtonIteration(params: Record<string, string>, logger
   logger.separator();
 
   // --- Giải từng khoảng ---
-  const results: { xBar: number; converged: boolean }[] = [];
+  const allIntervalSummaries: {
+    intervalDesc: string;
+    items: IterationResult[];
+  }[] = [];
+
   for (let i = 0; i < intervalsToSolve.length; i++) {
     const { index: kGlobal } = intervalsToSolve[i];
+    const intervalDesc = `[${fmtNum(X[kGlobal])}, ${fmtNum(X[kGlobal + 1])}]`;
+    const intervalPrefix = intervalsToSolve.length > 1 ? `[Khoảng ${i + 1}/${intervalsToSolve.length}: ${intervalDesc}] ` : "";
+
     if (intervalsToSolve.length > 1) {
       logger.separator();
-      logger.info(`### Khoảng ${i + 1}/${intervalsToSolve.length}: $[x_{${kGlobal}}, x_{${kGlobal + 1}}] = [${fmtNum(X[kGlobal])}, ${fmtNum(X[kGlobal + 1])}]$`);
+      logger.info(`### Khoảng ${i + 1}/${intervalsToSolve.length}: $[x_{${kGlobal}}, x_{${kGlobal + 1}}] = ${intervalDesc}$`);
       logger.separator();
     }
-    const res = solveOneIterationInterval(
-      X, Y, yBar, eps, h, kGlobal, nodeCount, logger,
-      i + 1, intervalsToSolve.length,
-    );
-    results.push(res);
-  }
 
-  // --- Tổng kết (khi nhiều khoảng) ---
-  if (results.length > 1) {
-    logger.separator();
-    logger.section("TỔNG KẾT — TẤT CẢ NGHIỆM");
-    const convergedResults = results.filter((r) => r.converged && Number.isFinite(r.xBar));
-    if (convergedResults.length === 0) {
-      logger.warn("Tất cả các khoảng đều không hội tụ.");
-    } else {
+    const intervalResults: IterationResult[] = [];
+
+    if (iterMode === "central" || iterMode === "all") {
+      const res = solveOneCentral(X, Y, yBar, eps, h, kGlobal, nodeCount, logger, intervalPrefix);
+      intervalResults.push(res);
+    }
+    if (iterMode === "backward" || iterMode === "all") {
+      const res = solveOneBackward(X, Y, yBar, eps, h, kGlobal, nodeCount, logger, intervalPrefix);
+      intervalResults.push(res);
+    }
+    if (iterMode === "forward" || iterMode === "all") {
+      const res = solveOneForward(X, Y, yBar, eps, h, kGlobal, nodeCount, logger, intervalPrefix);
+      intervalResults.push(res);
+    }
+
+    allIntervalSummaries.push({ intervalDesc, items: intervalResults });
+
+    // Bảng so sánh các phương pháp trên khoảng này (nếu chạy all)
+    if (intervalResults.length > 1) {
+      logger.separator();
+      logger.section(`${intervalPrefix}BẢNG SO SÁNH CÁC PHƯƠNG PHÁP NỘI SUY LẶP`);
       logger.table(
-        convergedResults.map((r, i) => ({
-          "Nghiệm": `$x_{${i + 1}}$`,
-          "$\\bar{x}$": `$${fmtNum(r.xBar)}$`,
+        intervalResults.map((r) => ({
+          "Phương pháp áp dụng": r.methodName,
+          "Mốc sử dụng": r.usedNodesDesc,
+          "Số vòng lặp": `$${r.iters}$`,
+          "Kết quả $x^*$": Number.isFinite(r.xBar) ? `$${fmtNum(r.xBar)}$` : "—",
           "Trạng thái": r.converged ? "✅ Hội tụ" : "⚠️ Không hội tụ",
         }))
       );
-      logger.result(
-        convergedResults
-          .map((r, i) => `$$\\bar{x}_{${i + 1}} \\approx ${fmtNum(r.xBar)}$$`)
-          .join("\n")
-      );
     }
+  }
+
+  // --- Tổng kết toàn cục nếu có nhiều khoảng cách ly ---
+  if (intervalsToSolve.length > 1) {
+    logger.separator();
+    logger.section("TỔNG KẾT — TẤT CẢ KHOẢNG CÁCH LY");
+    const summaryRows: Record<string, unknown>[] = [];
+    allIntervalSummaries.forEach((sum, intIdx) => {
+      sum.items.forEach((item) => {
+        summaryRows.push({
+          "Khoảng cách ly": sum.intervalDesc,
+          "Phương pháp": item.methodName,
+          "Mốc sử dụng": item.usedNodesDesc,
+          "Kết quả $x^*$": Number.isFinite(item.xBar) ? `$${fmtNum(item.xBar)}$` : "—",
+          "Trạng thái": item.converged ? "✅ Hội tụ" : "⚠️",
+        });
+      });
+    });
+    logger.table(summaryRows);
   }
 }
