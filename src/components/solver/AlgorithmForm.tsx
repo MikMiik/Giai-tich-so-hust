@@ -1063,13 +1063,19 @@ function SmoothingSplineFields({ onKeyDown }: FieldProps) {
               onChange={(e) => setBoundaryType3(e.target.value)}
             >
               <option value="second">Đạo hàm cấp 2 tại 2 đầu: S″(x₁) và S″(xₙ) (Spline tự nhiên khi = 0)</option>
-              <option value="clamped">Đạo hàm cấp 1 tại 2 đầu (Clamped): S′(x₁) và S′(xₙ)</option>
+              <option value="clamped">Đạo hàm cấp 1 tại 2 đầu (Clamped Spline): S′(x₁) và S′(xₙ)</option>
+              <option value="clamped_second">Biên hỗn hợp: S′(x₁) ở mút trái và S″(xₙ) ở mút phải</option>
+              <option value="second_clamped">Biên hỗn hợp: S″(x₁) ở mút trái và S′(xₙ) ở mút phải</option>
             </select>
           </div>
           <div className="form-row">
             <div className="form-group">
               <label className="form-label" htmlFor="in-splineBoundaryVal1">
-                {boundaryType3 === "second" ? <code>S″(x₁)</code> : <code>S′(x₁)</code>}
+                {boundaryType3 === "second" || boundaryType3 === "second_clamped" ? (
+                  <code>S″(x₁)</code>
+                ) : (
+                  <code>S′(x₁)</code>
+                )}
               </label>
               <input
                 className="form-input"
@@ -1081,7 +1087,11 @@ function SmoothingSplineFields({ onKeyDown }: FieldProps) {
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="in-splineBoundaryVal2">
-                {boundaryType3 === "second" ? <code>S″(xₙ)</code> : <code>S′(xₙ)</code>}
+                {boundaryType3 === "second" || boundaryType3 === "clamped_second" ? (
+                  <code>S″(xₙ)</code>
+                ) : (
+                  <code>S′(xₙ)</code>
+                )}
               </label>
               <input
                 className="form-input"
@@ -1093,9 +1103,10 @@ function SmoothingSplineFields({ onKeyDown }: FieldProps) {
             </div>
           </div>
           <div className="form-hint">
-            {boundaryType3 === "second"
-              ? "Nhập 0 cho cả 2 mút để tìm Spline tự nhiên (Natural Spline)."
-              : "Điều kiện biên kẹp (Clamped Spline) khống chế độ dốc tiếp tuyến ở 2 đầu."}
+            {boundaryType3 === "second" && "Nhập 0 cho cả 2 mút để tìm Spline tự nhiên (Natural Spline)."}
+            {boundaryType3 === "clamped" && "Điều kiện biên kẹp (Clamped Spline) khống chế hệ số góc tiếp tuyến ở 2 đầu."}
+            {boundaryType3 === "clamped_second" && "Biên hỗn hợp: khống chế tiếp tuyến S′(x₁) ở mút trái và độ cong/uốn S″(xₙ) ở mút phải."}
+            {boundaryType3 === "second_clamped" && "Biên hỗn hợp: khống chế độ cong/uốn S″(x₁) ở mút trái và tiếp tuyến S′(xₙ) ở mút phải."}
           </div>
         </>
       )}
