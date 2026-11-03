@@ -100,7 +100,8 @@ function FormFields({
     case "newton-backward-interpolation":
       return <NewtonBackwardInterpolationFields onKeyDown={onKeyDown} />;
     case "newton-uniform-forward":
-      return <NewtonUniformForwardFields onKeyDown={onKeyDown} />;
+    case "newton-uniform-backward":
+      return <NewtonUniformFields method={method} onKeyDown={onKeyDown} />;
     case "gauss-forward-interpolation":
     case "gauss-backward-interpolation":
       return <GaussCentralFields method={method} onKeyDown={onKeyDown} />;
@@ -637,7 +638,7 @@ function NewtonBackwardInterpolationFields({ onKeyDown }: FieldProps) {
   );
 }
 
-const NEWTON_UNIFORM_DEFAULTS = {
+const NEWTON_UNIFORM_FORWARD_DEFAULTS = {
   algo1: {
     xList: "1.0 1.2 1.4 1.6 1.8",
     yList: "1.00 1.28 1.76 2.48 3.48",
@@ -650,7 +651,21 @@ const NEWTON_UNIFORM_DEFAULTS = {
   },
 } as const;
 
-function NewtonUniformForwardFields({ onKeyDown }: FieldProps) {
+const NEWTON_UNIFORM_BACKWARD_DEFAULTS = {
+  algo1: {
+    xList: "1.0 1.2 1.4 1.6 1.8",
+    yList: "1.00 1.28 1.76 2.48 3.48",
+    xVal: "1.7",
+  },
+  algo2: {
+    xList: "0.00 0.25 0.50 0.75 1.00 1.25 1.50 1.75 2.00",
+    yList: "0.0 1.0 2.0 4.0 7.0 11.0 16.0 22.0 29.0",
+    xVal: "1.7",
+  },
+} as const;
+
+function NewtonUniformFields({ method, onKeyDown }: FieldProps & { method?: string }) {
+  const isBackward = method === "newton-uniform-backward";
   const [mode, setMode] = useState<"algo1" | "algo2">("algo1");
   const isAlgo2 = mode === "algo2";
 
@@ -658,14 +673,15 @@ function NewtonUniformForwardFields({ onKeyDown }: FieldProps) {
   const yListRef = useRef<HTMLInputElement>(null);
   const xValRef = useRef<HTMLInputElement>(null);
 
-  // Default data for each mode
-  // Auto-populate correct example data when mode changes
   useEffect(() => {
-    const d = NEWTON_UNIFORM_DEFAULTS[mode];
+    const tableDefaults = isBackward
+      ? NEWTON_UNIFORM_BACKWARD_DEFAULTS
+      : NEWTON_UNIFORM_FORWARD_DEFAULTS;
+    const d = tableDefaults[mode];
     if (xListRef.current) xListRef.current.value = d.xList;
     if (yListRef.current) yListRef.current.value = d.yList;
     if (xValRef.current) xValRef.current.value = d.xVal;
-  }, [mode]);
+  }, [mode, isBackward]);
 
   return (
     <>
@@ -693,9 +709,13 @@ function NewtonUniformForwardFields({ onKeyDown }: FieldProps) {
       {/* Description */}
       <div className="form-tab-desc">
         {!isAlgo2 ? (
-          <span>Nhập toàn bộ bảng $X, Y$ (mốc cách đều). Thuật toán sẽ lập bảng sai phân tiến và xây dựng $P_n(t)$.</span>
+          <span>
+            Nhập toàn bộ bảng $X, Y$ (mốc cách đều). Thuật toán sẽ lập bảng sai phân {isBackward ? "lùi" : "tiến"} và xây dựng $P_n(t)$ với $t = {isBackward ? "\\frac{x - x_n}{h}" : "\\frac{x - x_0}{h}"}$.
+          </span>
         ) : (
-          <span>Nhập bảng lớn $X, Y$ và điểm $x^*$ cần tính. Thuật toán tự động chọn $n$ mốc tối ưu xung quanh $x^*$ (đoạn nội suy $\approx 1$).</span>
+          <span>
+            Nhập bảng lớn $X, Y$ và điểm $x^*$ cần tính. Thuật toán tự động chọn $n$ mốc tối ưu xung quanh $x^*$ (đoạn nội suy $\approx 1$).
+          </span>
         )}
       </div>
 
@@ -766,9 +786,9 @@ function NewtonUniformForwardFields({ onKeyDown }: FieldProps) {
         />
         <div className="form-hint">
           {!isAlgo2 ? (
-            <>Ví dụ: <code>1.1</code> (để trống nếu chỉ muốn tìm đa thức)</>
+            <>Ví dụ: <code>{isBackward ? "1.7" : "1.1"}</code> (để trống nếu chỉ muốn tìm đa thức)</>
           ) : (
-            <>Bắt buộc. Ví dụ: <code>1.1</code> — thuật toán sẽ tự chọn mốc tối ưu xung quanh điểm này.</>
+            <>Bắt buộc. Ví dụ: <code>{isBackward ? "1.7" : "1.1"}</code> — thuật toán sẽ tự chọn mốc tối ưu xung quanh điểm này.</>
           )}
         </div>
       </div>

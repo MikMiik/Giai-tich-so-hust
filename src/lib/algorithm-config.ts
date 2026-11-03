@@ -12,6 +12,7 @@ import { runLagrangeInterpolation } from "@/lib/algorithms/lagrange-interpolatio
 import { runNewtonForwardInterpolation } from "@/lib/algorithms/newton-forward-interpolation";
 import { runNewtonBackwardInterpolation } from "@/lib/algorithms/newton-backward-interpolation";
 import { runNewtonUniformForward } from "@/lib/algorithms/newton-uniform-forward";
+import { runNewtonUniformBackward } from "@/lib/algorithms/newton-uniform-backward";
 import {
   runGaussBackwardInterpolation,
   runGaussForwardInterpolation,
@@ -218,6 +219,21 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
       errM: "",
     },
     run: runNewtonUniformForward,
+  },
+  "newton-uniform-backward": {
+    title: "Nội Suy Newton Lùi (Cách Đều)",
+    subtitle:
+      "Bảng sai phân lùi ∇ᵏy, biến chuẩn hóa t = (x−xₙ)/h — Newton Backward Uniform",
+    icon: "∇↓",
+    defaultValues: {
+      mode: "algo1",
+      xList: "1.0 1.2 1.4 1.6 1.8",
+      yList: "1.00 1.28 1.76 2.48 3.48",
+      xVal: "1.7",
+      errFx: "",
+      errM: "",
+    },
+    run: runNewtonUniformBackward,
   },
   "gauss-forward-interpolation": {
     title: "Nội Suy Gauss Tiến",
@@ -633,6 +649,7 @@ export const PPS_SIDEBAR_SECTIONS = [
       "newton-forward-interpolation",
       "newton-backward-interpolation",
       "newton-uniform-forward",
+      "newton-uniform-backward",
       "gauss-forward-interpolation",
       "gauss-backward-interpolation",
       "stirling-interpolation",

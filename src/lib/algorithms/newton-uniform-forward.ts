@@ -79,6 +79,30 @@ function evalPnByT(c: number[], t: number): number {
 }
 
 // ---------------------------------------------------------------------------
+// Helper: Tính đạo hàm P'_n(t) theo biến chuẩn hóa t
+// P'_n(t) = c₁ + c₂/2! * (2t - 1) + c₃/3! * d/dt[t(t-1)(t-2)] + ...
+// ---------------------------------------------------------------------------
+function evalPnDerivByT(c: number[], t: number): number {
+  let result = 0;
+  let factorial = 1;
+  for (let k = 1; k < c.length; k++) {
+    factorial *= k;
+    let dProd = 0;
+    for (let m = 0; m < k; m++) {
+      let term = 1;
+      for (let j = 0; j < k; j++) {
+        if (j !== m) {
+          term *= t - j;
+        }
+      }
+      dProd += term;
+    }
+    result += (c[k] / factorial) * dProd;
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
 // Helper: Xây biểu diễn LaTeX của P_n(t) dạng khai triển c_k/k! * t(t-1)...(t-k+1)
 // ---------------------------------------------------------------------------
 function buildPnTLatex(c: number[], n: number): string {
@@ -223,17 +247,22 @@ function runCoreUniformForward(
   );
   logger.result(`$$P_{${n}}(x) = ${fmtPoly(standardCoeffs)}$$`);
 
-  // --- Tính giá trị tại x* ---
+  // --- Tính giá trị và đạo hàm tại x* ---
   let valStarForError: number | null = null;
   if (xStar !== null) {
-    logger.section(`${sIdx(5)}. TÍNH GIÁ TRỊ TẠI ĐIỂM ƯỚC LƯỢNG`);
+    logger.section(`${sIdx(5)}. TÍNH GIÁ TRỊ VÀ ĐẠO HÀM TẠI ĐIỂM ƯỚC LƯỢNG`);
     const tStar = (xStar - x0) / h;
     logger.formula(
       `$$t^* = \\frac{x^* - ${fmtNum(x0)}}{${fmtNum(h)}} = \\frac{${fmtNum(xStar)} - ${fmtNum(x0)}}{${fmtNum(h)}} = ${fmtNum(tStar)}$$`,
     );
     const valStar = evalPnByT(c, tStar);
+    const dValStarT = evalPnDerivByT(c, tStar);
+    const dValStarX = dValStarT / h;
     logger.result(
       `$$P_{${n}}(${fmtNum(xStar)}) = P_{${n}}(t^* = ${fmtNum(tStar)}) = ${fmtNum(valStar)}$$`,
+    );
+    logger.result(
+      `$$P'_{${n}}(t^* = ${fmtNum(tStar)}) = ${fmtNum(dValStarT)} \\implies f'(${fmtNum(xStar)}) \\approx \\frac{1}{h} P'_{${n}}(t^*) = \\frac{${fmtNum(dValStarT)}}{${fmtNum(h)}} = ${fmtNum(dValStarX)}$$`,
     );
     valStarForError = valStar;
   }
@@ -358,6 +387,12 @@ export function runNewtonUniformForward(
 
     const N = X.length; // Tổng số mốc (index 0..N-1)
 
+    if (xStar < X[0] || xStar > X[N - 1]) {
+      logger.warn(
+        `Điểm $x^* = ${fmtNum(xStar)}$ nằm ngoài phạm vi mốc $[${fmtNum(X[0])}, ${fmtNum(X[N - 1])}]$ (Ngoại suy). Độ chính xác có thể giảm.`,
+      );
+    }
+
     logger.section("1. BẢNG DỮ LIỆU ĐẦU VÀO (Toàn bộ)");
     logger.info(
       `Tổng số mốc: $N_{total} = ${N}$, bước lưới $h = ${fmtNum(h0)}$. Điểm cần tính $x^* = ${fmtNum(xStar)}$.`,
@@ -372,10 +407,10 @@ export function runNewtonUniformForward(
 
     // Bước 1: K, n
     logger.section("2. XÁC ĐỊNH SỐ MỐC VÀ MỐC BẮT ĐẦU TỐI ƯU");
-    const K = Math.round(1 / Math.abs(h0));
-    const n = K + 1; // số mốc cần chọn
+    const K = Math.max(1, Math.round(1 / Math.abs(h0)));
+    const n = Math.max(2, K + 1); // số mốc cần chọn (tối thiểu 2 mốc)
     logger.info(
-      `$K = \\text{round}\\left(\\frac{1}{h}\\right) = \\text{round}\\left(\\frac{1}{${fmtNum(h0)}}\\right) = ${K}$ khoảng`,
+      `$K = \\max\\left(1, \\text{round}\\left(\\frac{1}{|h|}\\right)\\right) = \\max\\left(1, \\text{round}\\left(\\frac{1}{${fmtNum(Math.abs(h0))}}\\right)\\right) = ${K}$ khoảng`,
     );
     logger.info(
       `Số mốc cần chọn: $n = K + 1 = ${n}$ mốc (bậc đa thức $= n - 1 = ${n - 1}$)`,

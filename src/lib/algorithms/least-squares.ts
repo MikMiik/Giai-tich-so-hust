@@ -139,6 +139,35 @@ export function runLeastSquares(params: Record<string, string>, logger: Logger):
       return;
     }
 
+    // Tự động loại bỏ hàm hằng 1 nếu người dùng nhập trong basis, vì phi_0 = 1 được thêm tự động làm hệ số tự do a_0 = ln|a|
+    const filteredBasis = nonlinBasis.filter((item) => {
+      const raw = item.raw.trim();
+      if (raw === "1") return false;
+      try {
+        if (
+          Math.abs(item.evaluate(1) - 1) < 1e-12 &&
+          Math.abs(item.evaluate(2) - 1) < 1e-12
+        ) {
+          return false;
+        }
+      } catch {}
+      return true;
+    });
+
+    if (filteredBasis.length < nonlinBasis.length) {
+      logger.info(
+        "💡 **Ghi chú:** Đã tự động lược bỏ hàm hằng $1$ trong hệ cơ sở $\\varphi_j(x)$ vì mô hình hàm mũ đã tự động bao gồm hệ số tự do $\\varphi_0(x) = 1$ (tương ứng với $a_0 = \\ln |a|$).",
+      );
+      nonlinBasis = filteredBasis;
+    }
+
+    if (!nonlinBasis.length) {
+      logger.error(
+        "Cần nhập ít nhất một hàm cơ sở $\\varphi_j(x)$ (khác hàm hằng 1) trên số mũ.",
+      );
+      return;
+    }
+
     const m = nonlinBasis.length;
     if (n < m + 1) {
       logger.error(`Số điểm thực nghiệm n = ${n} phải lớn hơn hoặc bằng m + 1 = ${m + 1}.`);
@@ -384,16 +413,28 @@ export function runLeastSquares(params: Record<string, string>, logger: Logger):
 
     // Đánh giá trên Y gốc: z_i = sum b_j * phi_j(x_i)
     const z = phi.map((row) => row.reduce((sum, val, idx) => sum + val * b[idx], 0));
-    const hasNonPositiveZ = z.some((zi) => zi <= 0);
-    if (hasNonPositiveZ) {
-      logger.warn("Một số mốc có $z_i = \\sum b_j \\varphi_j(x_i) \\le 0$, biểu thức trong logarit không xác định tại các điểm này.");
-    }
+    const nonPositiveCount = z.filter((zi) => zi <= 0).length;
 
     const yHat = z.map((zi) => (zi > 0 ? Math.log(zi) : NaN));
     const residuals = yHat.map((val, idx) => (Number.isFinite(val) ? val - Y[idx] : NaN));
     const validResiduals = residuals.filter((r) => Number.isFinite(r));
+
+    if (validResiduals.length === 0) {
+      logger.error("Tất cả các điểm thực nghiệm đều có $z_i \\le 0$, biểu thức trong logarit không xác định.");
+      return;
+    }
+
     const ssd = validResiduals.reduce((sum, e) => sum + e * e, 0);
-    const rmse = Math.sqrt(ssd / validResiduals.length);
+    const rmse = Math.sqrt(ssd / n); // Chia đúng cho tổng số điểm n theo lý thuyết
+
+    if (nonPositiveCount > 0) {
+      logger.warn(
+        `Phát hiện ${nonPositiveCount}/${n} điểm có $z_i = \\sum b_j \\varphi_j(x_i) \\le 0$ (biểu thức trong $\\ln$ không xác định). ` +
+          `Theo lý thuyết hàm logarit đòi hỏi $z_i > 0, \\forall i$. ` +
+          `Sai số $\\sigma$ chuẩn dưới đây được tính chia cho $n = ${n}$ mốc: $\\sigma = \\sqrt{S / ${n}} = ${fmtNum(rmse)}$. ` +
+          `Nếu chỉ tính chia trên ${validResiduals.length} điểm hợp lệ: $\\sigma_{\\text{hợp lệ}} = \\sqrt{S / ${validResiduals.length}} = ${fmtNum(Math.sqrt(ssd / validResiduals.length))}$.`,
+      );
+    }
 
     logger.section("HÀM XẤP XỈ VÀ ĐÁNH GIÁ ĐỘ CHÍNH XÁC");
     const bTerms = b.map((val, idx) => {
@@ -413,7 +454,16 @@ export function runLeastSquares(params: Record<string, string>, logger: Logger):
     }));
     logger.table(evalTable);
 
-    logger.result(`$$S = E^T E = \\sum_{i=1}^{${n}} e_i^2 = ${fmtNum(ssd)}$$`);
-    logger.result(`$$\\sigma = \\sqrt{\\frac{S}{n}} = ${fmtNum(rmse)}$$`);
+    if (nonPositiveCount > 0) {
+      logger.result(
+        `$$S = \\sum_{i \\in \\text{hợp lệ}} e_i^2 = ${fmtNum(ssd)} \\quad (${validResiduals.length}/${n} \\text{ điểm hợp lệ})$$`,
+      );
+      logger.result(
+        `$$\\sigma = \\sqrt{\\frac{S}{n}} = \\sqrt{\\frac{${fmtNum(ssd)}}{${n}}} = ${fmtNum(rmse)}$$`,
+      );
+    } else {
+      logger.result(`$$S = E^T E = \\sum_{i=1}^{${n}} e_i^2 = ${fmtNum(ssd)}$$`);
+      logger.result(`$$\\sigma = \\sqrt{\\frac{S}{n}} = ${fmtNum(rmse)}$$`);
+    }
   }
 }

@@ -4,7 +4,7 @@
     - Giá trị cần tìm nghiệm: $\bar{y} \in \mathbb{R}$.
     - Độ chính xác yêu cầu: $\varepsilon > 0$.
     - *(Tùy chọn)* Chỉ số $k$ của khoảng cách ly $[x_k, x_{k+1}]$ chứa $\bar{y}$ (để trống để tự động giải và tìm nghiệm trên **tất cả** các khoảng cách ly).
-    - *(Tùy chọn)* Số mốc cần trích xuất $n_{\text{mốc}} \ge 2$: lấy $n_{\text{mốc}}$ mốc cách đều đối xứng quanh mỗi khoảng cách ly thay vì dùng toàn bộ bảng (giúp tránh tràn số bảng sai phân bậc cao).
+    - *(Tùy chọn)* Số mốc cần trích xuất $n_{\text{mốc}} \ge 2$: lấy $n_{\text{mốc}}$ mốc cách đều tiến xuất phát từ mốc $x_k$ của khoảng cách ly thay vì dùng toàn bộ bảng (giúp tránh tràn số bảng sai phân bậc cao).
 
 - **Steps:**
     1. **Xác định các khoảng cách ly nghiệm:**
@@ -13,12 +13,13 @@
         - Nếu để trống: giải tuần tự **tất cả** các khoảng cách ly tìm được.
 
     2. **Với mỗi khoảng cách ly $[x_k, x_{k+1}]$:**
-        - *(Tùy chọn)* **Trích xuất $n_{\text{mốc}}$ mốc đối xứng quanh khoảng cách ly:**
+        - *(Tùy chọn)* **Trích xuất $n_{\text{mốc}}$ mốc tiến xuất phát từ mốc $x_k$:**
             - Nếu $n_{\text{mốc}}$ được cung cấp và $n_{\text{mốc}} < N+1$:
-                - Tính $idx_{\text{start}} = \max\!\left(0,\ k - \left\lfloor\tfrac{n_{\text{mốc}}-1}{2}\right\rfloor\right)$, kẹp phải để đủ $n_{\text{mốc}}$ mốc.
+                - Đặt chỉ số bắt đầu lấy mốc từ mốc trái của khoảng cách ly: $idx_{\text{start}} = k$.
+                - Kiểm tra nếu tràn cuối bảng ($idx_{\text{start}} + n_{\text{mốc}} > N + 1$): gán lại $idx_{\text{start}} = \max(0, N - n_{\text{mốc}} + 1)$.
                 - Lấy dãy con $x_i = X[idx_{\text{start}} \dots idx_{\text{start}} + n_{\text{mốc}} - 1]$,  
                   $y_i = Y[idx_{\text{start}} \dots idx_{\text{start}} + n_{\text{mốc}} - 1]$.
-                - Cập nhật $k_{\text{local}} = k - idx_{\text{start}}$ (chỉ số trong mảng con).
+                - Cập nhật $k_{\text{local}} = k - idx_{\text{start}}$ (chỉ số trong mảng con, thường bằng $0$ khi không bị tràn biên cuối).
             - Ngược lại: dùng toàn bộ $X, Y$ và $k_{\text{local}} = k$.
 
         - **Lập bảng sai phân tiến $\Delta$ trên dãy làm việc:**

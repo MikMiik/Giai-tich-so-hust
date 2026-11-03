@@ -31,6 +31,7 @@ export type AlgorithmKey =
   | "newton-forward-interpolation"
   | "newton-backward-interpolation"
   | "newton-uniform-forward"
+  | "newton-uniform-backward"
   | "gauss-forward-interpolation"
   | "gauss-backward-interpolation"
   | "stirling-interpolation"
