@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Đạo hàm p+1 điểm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f9fafb; color: #111827; }
+        .highlight-window { background-color: #dbeafe; transition: background-color 0.3s; }
+        .highlight-target { background-color: #bfdbfe; font-weight: bold; }
+        .highlight-matrix-row { background-color: #bfdbfe; transition: background-color 0.3s; }
+        input[type=range] { width: 100%; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #e5e7eb; padding: 0.5rem; text-align: center; }
+        th { background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="p-6 max-w-6xl mx-auto">
+
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+        <h1 class="text-2xl font-bold mb-4">Mô phỏng thuật toán Đạo hàm p+1 điểm</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Bậc đa thức p (số điểm = p+1):</label>
+                <input type="number" id="pInput" value="3" min="1" max="5" class="w-full border border-gray-300 rounded-md p-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Bước lưới h:</label>
+                <input type="number" id="hInput" value="0.1" step="0.1" class="w-full border border-gray-300 rounded-md p-2">
+            </div>
+            <div class="flex items-end">
+                <button id="updateBtn" class="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 w-full transition">Cập nhật Ma trận D</button>
+            </div>
+        </div>
+
+        <div class="mb-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
+                <span>Trượt cửa sổ tới mốc m = <span id="mDisplay" class="font-bold text-blue-600">0</span></span>
+                <span>(Tính đạo hàm tại <span id="xTargetDisplay" class="font-bold"></span>)</span>
+            </label>
+            <input type="range" id="mSlider" value="0" min="0" max="10" class="w-full cursor-pointer">
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Bảng Dữ Liệu -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+            <h2 class="text-lg font-semibold mb-3">Bảng dữ liệu X, Y</h2>
+            <div class="text-sm text-gray-500 mb-2">Vùng xanh nhạt: Cửa sổ p+1 điểm. Dòng in đậm: Mốc x_m.</div>
+            <table id="dataTable" class="w-full text-sm">
+                <thead>
+                    <tr>
+                        <th class="w-16">m</th>
+                        <th>x_m</th>
+                        <th>y_m</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody">
+                    <!-- Dữ liệu được render bằng JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Ma Trận & Tính Toán -->
+        <div class="space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+                <h2 class="text-lg font-semibold mb-3">Ma trận trọng số D</h2>
+                <div class="text-sm text-gray-500 mb-2">Hàng được highlight: Hàng k tương ứng vị trí của x_m trong cửa sổ.</div>
+                <table id="matrixTable" class="w-full text-sm font-mono">
+                    <tbody id="matrixTableBody">
+                        <!-- Ma trận được render bằng JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h2 class="text-lg font-semibold mb-3">Tính toán chi tiết</h2>
+                <div class="space-y-2 text-sm">
+                    <p>Cửa sổ bắt đầu tại <strong class="text-blue-600">s = <span id="sVal">0</span></strong>.</p>
+                    <p>Vị trí tương đối của mốc trong cửa sổ <strong class="text-blue-600">k = <span id="kVal">0</span></strong>.</p>
+                    <div class="p-3 bg-gray-50 border border-gray-200 rounded mt-2 font-mono text-xs overflow-x-auto whitespace-nowrap">
+                        <div class="text-gray-500 mb-1">Công thức: dy_m = (1/h) * Σ (D[k, i] * Y[s+i])</div>
+                        <div id="calcFormula" class="mb-1 text-gray-800"></div>
+                        <div id="calcResult" class="font-bold text-lg mt-2 text-blue-700"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Dữ liệu mẫu
+        let n = 10;
+        let X = Array.from({length: n + 1}, (_, i) => 3.0 + i * 0.1);
+        // y = sin(x) + x để có dữ liệu cong
+        let Y = X.map(x => Math.sin(x) + x); 
+        
+        let p = 3;
+        let h = 0.1;
+        let m = 0;
+        let D_matrix = [];
+
+        const elements = {
+            pInput: document.getElementById('pInput'),
+            hInput: document.getElementById('hInput'),
+            updateBtn: document.getElementById('updateBtn'),
+            mSlider: document.getElementById('mSlider'),
+            mDisplay: document.getElementById('mDisplay'),
+            xTargetDisplay: document.getElementById('xTargetDisplay'),
+            dataTableBody: document.getElementById('dataTableBody'),
+            matrixTableBody: document.getElementById('matrixTableBody'),
+            sVal: document.getElementById('sVal'),
+            kVal: document.getElementById('kVal'),
+            calcFormula: document.getElementById('calcFormula'),
+            calcResult: document.getElementById('calcResult')
+        };
+
+        function calculateDMatrix(p) {
+            let D = Array(p + 1).fill(0).map(() => Array(p + 1).fill(0));
+            for (let k = 0; k <= p; k++) {
+                for (let i = 0; i <= p; i++) {
+                    if (k !== i) {
+                        let prod = 1;
+                        for (let j = 0; j <= p; j++) {
+                            if (j !== i && j !== k) prod *= (k - j) / (i - j);
+                        }
+                        D[k][i] = prod * (1 / (i - k));
+                    } else {
+                        let sum = 0;
+                        for (let j = 0; j <= p; j++) {
+                            if (j !== i) sum += 1 / (i - j);
+                        }
+                        D[i][i] = sum;
+                    }
+                }
+            }
+            return D;
+        }
+
+        function renderMatrix(D, activeK) {
+            let html = '';
+            for (let k = 0; k <= p; k++) {
+                let rowClass = (k === activeK) ? 'highlight-matrix-row' : '';
+                html += `<tr class="${rowClass}">`;
+                html += `<td class="bg-gray-50 font-bold text-gray-500 w-10">D<sub>${k}</sub></td>`;
+                for (let i = 0; i <= p; i++) {
+                    html += `<td>${D[k][i].toFixed(4)}</td>`;
+                }
+                html += `</tr>`;
+            }
+            elements.matrixTableBody.innerHTML = html;
+        }
+
+        function updateSimulation() {
+            p = parseInt(elements.pInput.value);
+            if (p > n) p = n;
+            h = parseFloat(elements.hInput.value);
+            m = parseInt(elements.mSlider.value);
+            
+            elements.mDisplay.textContent = m;
+            elements.xTargetDisplay.textContent = X[m].toFixed(1);
+
+            D_matrix = calculateDMatrix(p);
+
+            let L = Math.floor(p / 2);
+            let s = Math.max(0, Math.min(n - p, m - L));
+            let k = m - s;
+
+            elements.sVal.textContent = s;
+            elements.kVal.textContent = k;
+
+            // Render Data Table
+            let tableHtml = '';
+            for (let i = 0; i <= n; i++) {
+                let isWindow = (i >= s && i <= s + p);
+                let isTarget = (i === m);
+                let rowClass = '';
+                if (isTarget) rowClass = 'highlight-target';
+                else if (isWindow) rowClass = 'highlight-window';
+
+                tableHtml += `<tr class="${rowClass}">
+                    <td>${i}</td>
+                    <td>${X[i].toFixed(1)}</td>
+                    <td>${Y[i].toFixed(6)}</td>
+                </tr>`;
+            }
+            elements.dataTableBody.innerHTML = tableHtml;
+
+            // Render Matrix
+            renderMatrix(D_matrix, k);
+
+            // Calculation
+            let formulaStr = `dy_${m} = (1/${h}) * [ `;
+            let sum = 0;
+            for (let i = 0; i <= p; i++) {
+                let d_val = D_matrix[k][i];
+                let y_val = Y[s + i];
+                let term = d_val * y_val;
+                sum += term;
+                formulaStr += `(${d_val.toFixed(4)} * ${y_val.toFixed(4)})`;
+                if (i < p) formulaStr += ` + `;
+            }
+            formulaStr += ` ]`;
+            let finalResult = sum / h;
+
+            elements.calcFormula.innerHTML = formulaStr;
+            elements.calcResult.innerHTML = `dy_${m} ≈ ${finalResult.toFixed(6)}`;
+        }
+
+        // Init
+        elements.mSlider.max = n;
+        elements.mSlider.addEventListener('input', updateSimulation);
+        elements.updateBtn.addEventListener('click', () => {
+            elements.pInput.value = Math.min(Math.max(parseInt(elements.pInput.value), 1), n);
+            updateSimulation();
+        });
+
+        updateSimulation();
+    </script>
+</body>
+</html>

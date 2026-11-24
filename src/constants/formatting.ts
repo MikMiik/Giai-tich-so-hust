@@ -7,4 +7,3 @@ export const FormattingConfig = {
 } as const;
 
 export type FormattingConfigType = typeof FormattingConfig;
-

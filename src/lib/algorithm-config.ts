@@ -22,6 +22,7 @@ import { runBesselInterpolation } from "@/lib/algorithms/bessel-interpolation";
 import { runLeastSquares } from "@/lib/algorithms/least-squares";
 import { runSmoothingSpline } from "@/lib/algorithms/smoothing-spline";
 import { runExtractEquidistantNodes } from "@/lib/algorithms/extract-equidistant-nodes";
+import { runDerivativeLagrangeNodes } from "@/lib/algorithms/derivative-lagrange-nodes";
 import {
   runInverseIsolation,
   runInverseNewtonForward,
@@ -331,6 +332,17 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
       xVal: "1.1",
     },
     run: runExtractEquidistantNodes,
+  },
+  "derivative-lagrange-nodes": {
+    title: "Đạo Hàm p + 1 Điểm Tại Mốc",
+    subtitle: "Tính f'(xₘ) tại các mốc cách đều bằng ma trận Lagrange D",
+    icon: "f'",
+    defaultValues: {
+      p: "2",
+      xList: "1 2 3",
+      yList: "1 4 9",
+    },
+    run: runDerivativeLagrangeNodes,
   },
   "inverse-isolation": {
     title: "Khoảng Cách Ly (Nội Suy Ngược)",
@@ -657,6 +669,7 @@ export const PPS_SIDEBAR_SECTIONS = [
       "least-squares",
       "smoothing-spline",
       "extract-equidistant-nodes",
+      "derivative-lagrange-nodes",
     ] as AlgorithmKey[],
   },
   {

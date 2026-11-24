@@ -114,6 +114,8 @@ function FormFields({
       return <SmoothingSplineFields onKeyDown={onKeyDown} />;
     case "extract-equidistant-nodes":
       return <ExtractEquidistantNodesFields onKeyDown={onKeyDown} />;
+    case "derivative-lagrange-nodes":
+      return <DerivativeLagrangeNodesFields onKeyDown={onKeyDown} />;
     case "inverse-isolation":
     case "monotone-intervals":
     case "inverse-newton-forward":
@@ -1130,6 +1132,55 @@ function SmoothingSplineFields({ onKeyDown }: FieldProps) {
           </div>
         </>
       )}
+    </>
+  );
+}
+
+function DerivativeLagrangeNodesFields({ onKeyDown }: FieldProps) {
+  return (
+    <>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-derivP">
+          Bậc p
+        </label>
+        <input
+          className="form-input"
+          id="in-derivP"
+          name="p"
+          type="number"
+          min="1"
+          step="1"
+          onKeyDown={onKeyDown}
+        />
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-xList">
+          Dãy X
+        </label>
+        <input
+          className="form-input"
+          id="in-xList"
+          name="xList"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+      </div>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-yList">
+          Dãy Y
+        </label>
+        <input
+          className="form-input"
+          id="in-yList"
+          name="yList"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+      </div>
     </>
   );
 }

@@ -39,6 +39,7 @@ export type AlgorithmKey =
   | "least-squares"
   | "smoothing-spline"
   | "extract-equidistant-nodes"
+  | "derivative-lagrange-nodes"
   | "inverse-isolation"
   | "monotone-intervals"
   | "inverse-newton-forward"
@@ -110,6 +111,7 @@ export const PPS_POLYNOMIAL_METHODS = [
   "bessel-interpolation",
   "least-squares",
   "smoothing-spline",
+  "derivative-lagrange-nodes",
   "inverse-isolation",
   "monotone-intervals",
   "inverse-newton-forward",
