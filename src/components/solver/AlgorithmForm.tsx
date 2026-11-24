@@ -116,6 +116,10 @@ function FormFields({
       return <ExtractEquidistantNodesFields onKeyDown={onKeyDown} />;
     case "derivative-lagrange-nodes":
       return <DerivativeLagrangeNodesFields onKeyDown={onKeyDown} />;
+    case "integral-midpoint":
+    case "integral-trapezoid":
+    case "integral-simpson":
+      return <NumericalIntegrationFields method={method} onKeyDown={onKeyDown} />;
     case "inverse-isolation":
     case "monotone-intervals":
     case "inverse-newton-forward":
@@ -1132,6 +1136,90 @@ function SmoothingSplineFields({ onKeyDown }: FieldProps) {
           </div>
         </>
       )}
+    </>
+  );
+}
+
+function NumericalIntegrationFields({
+  method,
+  onKeyDown,
+}: FieldProps & { method: "integral-midpoint" | "integral-trapezoid" | "integral-simpson" }) {
+  const isSimpson = method === "integral-simpson";
+  const mLabel = isSimpson ? "M₄ (tùy chọn)" : "M₂ (tùy chọn)";
+
+  return (
+    <>
+      <div className="form-group">
+        <label className="form-label" htmlFor="in-fStr">
+          Hàm f(x)
+        </label>
+        <input
+          className="form-input"
+          id="in-fStr"
+          name="fStr"
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          onKeyDown={onKeyDown}
+        />
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-a">
+            Cận a
+          </label>
+          <input
+            className="form-input"
+            id="in-a"
+            name="a"
+            type="text"
+            spellCheck={false}
+            onKeyDown={onKeyDown}
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-b">
+            Cận b
+          </label>
+          <input
+            className="form-input"
+            id="in-b"
+            name="b"
+            type="text"
+            spellCheck={false}
+            onKeyDown={onKeyDown}
+          />
+        </div>
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-epsilon">
+            Sai số ε
+          </label>
+          <input
+            className="form-input"
+            id="in-epsilon"
+            name="epsilon"
+            type="text"
+            spellCheck={false}
+            onKeyDown={onKeyDown}
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="in-mBound">
+            {mLabel}
+          </label>
+          <input
+            className="form-input"
+            id="in-mBound"
+            name="mBound"
+            type="text"
+            placeholder="Tự tính"
+            spellCheck={false}
+            onKeyDown={onKeyDown}
+          />
+        </div>
+      </div>
     </>
   );
 }

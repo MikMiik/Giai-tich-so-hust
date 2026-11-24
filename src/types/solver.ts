@@ -40,6 +40,9 @@ export type AlgorithmKey =
   | "smoothing-spline"
   | "extract-equidistant-nodes"
   | "derivative-lagrange-nodes"
+  | "integral-midpoint"
+  | "integral-trapezoid"
+  | "integral-simpson"
   | "inverse-isolation"
   | "monotone-intervals"
   | "inverse-newton-forward"
@@ -112,6 +115,9 @@ export const PPS_POLYNOMIAL_METHODS = [
   "least-squares",
   "smoothing-spline",
   "derivative-lagrange-nodes",
+  "integral-midpoint",
+  "integral-trapezoid",
+  "integral-simpson",
   "inverse-isolation",
   "monotone-intervals",
   "inverse-newton-forward",

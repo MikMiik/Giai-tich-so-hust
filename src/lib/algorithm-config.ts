@@ -24,6 +24,11 @@ import { runSmoothingSpline } from "@/lib/algorithms/smoothing-spline";
 import { runExtractEquidistantNodes } from "@/lib/algorithms/extract-equidistant-nodes";
 import { runDerivativeLagrangeNodes } from "@/lib/algorithms/derivative-lagrange-nodes";
 import {
+  runIntegralMidpoint,
+  runIntegralSimpson,
+  runIntegralTrapezoid,
+} from "@/lib/algorithms/numerical-integration";
+import {
   runInverseIsolation,
   runInverseNewtonForward,
   runInverseNewtonIteration,
@@ -343,6 +348,45 @@ export const ALGORITHM_CONFIG: Record<AlgorithmKey, AlgoConfig> = {
       yList: "1 4 9",
     },
     run: runDerivativeLagrangeNodes,
+  },
+  "integral-midpoint": {
+    title: "Tích Phân Điểm Giữa",
+    subtitle: "Xấp xỉ tích phân theo trung điểm với sai số M₂ — Midpoint Rule",
+    icon: "∫ₘ",
+    defaultValues: {
+      fStr: "1 / (1 + x^2)",
+      a: "0",
+      b: "1",
+      epsilon: "1e-4",
+      mBound: "",
+    },
+    run: runIntegralMidpoint,
+  },
+  "integral-trapezoid": {
+    title: "Tích Phân Hình Thang",
+    subtitle: "Xấp xỉ tích phân theo hình thang với sai số M₂ — Trapezoidal Rule",
+    icon: "∫ₜ",
+    defaultValues: {
+      fStr: "1 / (1 + x^2)",
+      a: "0",
+      b: "1",
+      epsilon: "1e-4",
+      mBound: "",
+    },
+    run: runIntegralTrapezoid,
+  },
+  "integral-simpson": {
+    title: "Tích Phân Simpson",
+    subtitle: "Xấp xỉ tích phân bậc 3 với sai số M₄ — Simpson's 1/3 Rule",
+    icon: "∫ₛ",
+    defaultValues: {
+      fStr: "1 / (1 + x^2)",
+      a: "0",
+      b: "1",
+      epsilon: "1e-6",
+      mBound: "",
+    },
+    run: runIntegralSimpson,
   },
   "inverse-isolation": {
     title: "Khoảng Cách Ly (Nội Suy Ngược)",
@@ -670,6 +714,9 @@ export const PPS_SIDEBAR_SECTIONS = [
       "smoothing-spline",
       "extract-equidistant-nodes",
       "derivative-lagrange-nodes",
+      "integral-midpoint",
+      "integral-trapezoid",
+      "integral-simpson",
     ] as AlgorithmKey[],
   },
   {
